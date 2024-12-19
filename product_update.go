@@ -9,6 +9,7 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/gouniverse/base/req"
+	"github.com/gouniverse/bs"
 	"github.com/gouniverse/cdn"
 	"github.com/gouniverse/form"
 	"github.com/gouniverse/hb"
@@ -18,6 +19,10 @@ import (
 	"github.com/samber/lo"
 	"github.com/spf13/cast"
 )
+
+const viewContent = "content"
+const viewMetadata = "metadata"
+const viewSettings = "settings"
 
 // ===========================================================================
 // == CONSTRUCTOR
@@ -48,12 +53,8 @@ func (c *productUpdateController) ToTag() hb.TagInterface {
 		return hb.Div().Class("alert alert-danger").Child(hb.Text(errorMessage))
 	}
 
-	if c.opts.GetRequest().Method == http.MethodPost && data.action == "update-details" {
-		return c.formDetails(data)
-	}
-
-	if c.opts.GetRequest().Method == http.MethodPost && data.action == "update-metadata" {
-		return c.formMetadata(data)
+	if c.opts.GetRequest().Method == http.MethodPost {
+		return c.form(data)
 	}
 
 	c.opts.GetLayout().SetTitle("Edit Product | Shop")
@@ -70,21 +71,25 @@ func (controller *productUpdateController) ToHTML() string {
 	return controller.ToTag().ToHTML()
 }
 
-func (controller *productUpdateController) page(data productUpdateControllerData) hb.TagInterface {
-	productManegerURL := url(controller.opts.GetRequest(), pathProducts, map[string]string{})
-	productUpdateURL := url(controller.opts.GetRequest(), pathProductUpdate, map[string]string{
-		"productID": data.productID,
-	})
-	productUpdateSaveDetailsURL := url(controller.opts.GetRequest(), pathProductUpdate, map[string]string{
-		"productID": data.productID,
-		"action":    "update-details",
-	})
-	productUpdateSaveMetadataURL := url(controller.opts.GetRequest(), pathProductUpdate, map[string]string{
-		"productID": data.productID,
-		"action":    "update-metadata",
-	})
+// ===========================================================================
+// == METHODS
+// ===========================================================================
 
-	breadcrumbs := breadcrumbs(controller.opts.GetRequest(), []breadcrumb{
+func (c *productUpdateController) page(data productUpdateControllerData) hb.TagInterface {
+	productManegerURL := url(c.opts.GetRequest(), pathProducts, map[string]string{})
+	productUpdateURL := url(c.opts.GetRequest(), pathProductUpdate, map[string]string{
+		"productID": data.productID,
+	})
+	// productUpdateSaveDetailsURL := url(c.opts.GetRequest(), pathProductUpdate, map[string]string{
+	// 	"productID": data.productID,
+	// 	"action":    "update-details",
+	// })
+	// productUpdateSaveMetadataURL := url(c.opts.GetRequest(), pathProductUpdate, map[string]string{
+	// 	"productID": data.productID,
+	// 	"action":    "update-metadata",
+	// })
+
+	breadcrumbs := breadcrumbs(c.opts.GetRequest(), []breadcrumb{
 		{
 			Name: "Product Manager",
 			URL:  productManegerURL,
@@ -95,13 +100,13 @@ func (controller *productUpdateController) page(data productUpdateControllerData
 		},
 	})
 
-	buttonDetailsSave := hb.Button().
-		Class("btn btn-primary ms-2 float-end").
-		Child(hb.I().Class("bi bi-save").Style("margin-top:-4px;margin-right:8px;font-size:16px;")).
-		HTML("Save").
-		HxInclude("#FormProductUpdate").
-		HxPost(productUpdateSaveDetailsURL).
-		HxTarget("#FormProductUpdate")
+	// buttonDetailsSave := hb.Button().
+	// 	Class("btn btn-primary ms-2 float-end").
+	// 	Child(hb.I().Class("bi bi-save").Style("margin-top:-4px;margin-right:8px;font-size:16px;")).
+	// 	HTML("Save").
+	// 	HxInclude("#FormProductUpdate").
+	// 	HxPost(productUpdateSaveDetailsURL).
+	// 	HxTarget("#FormProductUpdate")
 
 	buttonCancel := hb.Hyperlink().
 		Class("btn btn-secondary ms-2 float-end").
@@ -109,96 +114,189 @@ func (controller *productUpdateController) page(data productUpdateControllerData
 		HTML("Back").
 		Href(productManegerURL)
 
-	buttonMetadataSave := hb.Button().
+	// buttonMetadataSave := hb.Button().
+	// 	Class("btn btn-primary ms-2 float-end").
+	// 	Child(hb.I().Class("bi bi-save").Style("margin-top:-4px;margin-right:8px;font-size:16px;")).
+	// 	HTML("Save").
+	// 	HxInclude("#FormProductMetadataUpdate").
+	// 	HxPost(productUpdateSaveMetadataURL).
+	// 	HxTarget("#FormProductMetadataUpdate")
+
+	// cardProductDetails := hb.Div().
+	// 	Class("card").
+	// 	Child(
+	// 		hb.Div().
+	// 			Class("card-header").
+	// 			Style(`display:flex;justify-content:space-between;align-items:center;`).
+	// 			Child(hb.Heading4().
+	// 				HTML("Product Details").
+	// 				Style("margin-bottom:0;display:inline-block;")).
+	// 			Child(buttonDetailsSave),
+	// 	).
+	// 	Child(
+	// 		hb.Div().
+	// 			Class("card-body").
+	// 			Child(c.formDetails(data)))
+
+	// cardProductMetadata := hb.Div().
+	// 	Class("card").
+	// 	Child(
+	// 		hb.Div().
+	// 			Class("card-header").
+	// 			Style(`display:flex;justify-content:space-between;align-items:center;`).
+	// 			Child(hb.Heading4().
+	// 				HTML("Product Metadata").
+	// 				Style("margin-bottom:0;display:inline-block;")).
+	// 			Child(buttonMetadataSave),
+	// 	).
+	// 	Child(
+	// 		hb.Div().
+	// 			Class("card-body").
+	// 			Child(c.formMetadata(data)))
+
+	buttonSave := hb.Button().
 		Class("btn btn-primary ms-2 float-end").
 		Child(hb.I().Class("bi bi-save").Style("margin-top:-4px;margin-right:8px;font-size:16px;")).
 		HTML("Save").
-		HxInclude("#FormProductMetadataUpdate").
-		HxPost(productUpdateSaveMetadataURL).
-		HxTarget("#FormProductMetadataUpdate")
+		HxInclude("#FormProductUpdate").
+		HxPost(productUpdateURL).
+		HxTarget("#FormProductUpdate")
 
-	heading := hb.Heading1().
-		HTML("Shop. Product. Edit Product").
-		// Child(buttonSave).
+	title := hb.Heading1().
+		Class("mb-3").
+		Text("Edit Product: ").
+		Text(data.product.Title()).
 		Child(buttonCancel)
 
-	cardProductDetails := hb.Div().
+	card := hb.Div().
 		Class("card").
 		Child(
 			hb.Div().
 				Class("card-header").
 				Style(`display:flex;justify-content:space-between;align-items:center;`).
 				Child(hb.Heading4().
-					HTML("Product Details").
+					HTMLIf(data.view == viewContent, "Product Contents").
+					HTMLIf(data.view == viewMetadata, "Product Metadata").
+					HTMLIf(data.view == viewSettings, "Product Settings").
 					Style("margin-bottom:0;display:inline-block;")).
-				Child(buttonDetailsSave),
+				Child(buttonSave),
 		).
 		Child(
 			hb.Div().
 				Class("card-body").
-				Child(controller.formDetails(data)))
-
-	cardProductMetadata := hb.Div().
-		Class("card").
-		Child(
-			hb.Div().
-				Class("card-header").
-				Style(`display:flex;justify-content:space-between;align-items:center;`).
-				Child(hb.Heading4().
-					HTML("Product Metadata").
-					Style("margin-bottom:0;display:inline-block;")).
-				Child(buttonMetadataSave),
-		).
-		Child(
-			hb.Div().
-				Class("card-body").
-				Child(controller.formMetadata(data)))
-
-	productTitle := hb.Heading2().
-		Class("mb-3").
-		Text("Product: ").
-		Text(data.product.Title())
+				Child(c.form(data)))
 
 	return hb.Div().
 		Class("container").
 		Child(breadcrumbs).
 		Child(hb.HR()).
-		Child(header(controller.opts)).
+		Child(header(c.opts)).
 		Child(hb.HR()).
-		Child(heading).
-		Child(productTitle).
-		Child(cardProductDetails).
+		Child(title).
+		Child(c.tabs(data)).
+		Child(card).
+		// Child(cardProductDetails).
 		Child(hb.BR()).
-		Child(cardProductMetadata)
+		Child(hb.BR()).
+		Child(hb.BR()).
+		Child(hb.BR())
+	// Child(cardProductMetadata)
 }
 
-func (controller *productUpdateController) formDetails(data productUpdateControllerData) hb.TagInterface {
-	status := form.NewField(form.FieldOptions{
-		Label: "Status",
-		Name:  "product_status",
-		Type:  form.FORM_FIELD_TYPE_SELECT,
-		Value: data.formStatus,
-		Help:  `The status of the product.`,
-		Options: []form.FieldOption{
-			{
-				Value: "- not selected -",
-				Key:   "",
-			},
-			{
-				Value: "Active",
-				Key:   shopstore.PRODUCT_STATUS_ACTIVE,
-			},
-			{
-				Value: "Disabled",
-				Key:   shopstore.PRODUCT_STATUS_DISABLED,
-			},
-			{
-				Value: "Draft",
-				Key:   shopstore.PRODUCT_STATUS_DRAFT,
-			},
-		},
+func (controller *productUpdateController) tabs(data productUpdateControllerData) hb.TagInterface {
+	viewContentURL := url(controller.opts.GetRequest(), pathProductUpdate, map[string]string{
+		"product_id": data.productID,
+		"view":       viewContent,
 	})
 
+	viewMetadataURL := url(controller.opts.GetRequest(), pathProductUpdate, map[string]string{
+		"product_id": data.productID,
+		"view":       viewMetadata,
+	})
+
+	viewSettingsURL := url(controller.opts.GetRequest(), pathProductUpdate, map[string]string{
+		"product_id": data.productID,
+		"view":       viewSettings,
+	})
+
+	tabs := bs.NavTabs().
+		Class("mb-3").
+		Child(bs.NavItem().
+			Child(bs.NavLink().
+				ClassIf(data.view == viewContent, "active").
+				Href(viewContentURL).
+				HTML("Content"))).
+		Child(bs.NavItem().
+			Child(bs.NavLink().
+				ClassIf(data.view == viewMetadata, "active").
+				Href(viewMetadataURL).
+				HTML("Metas"))).
+		Child(bs.NavItem().
+			Child(bs.NavLink().
+				ClassIf(data.view == viewSettings, "active").
+				Href(viewSettingsURL).
+				HTML("Settings")))
+
+	return tabs
+}
+
+func (c *productUpdateController) form(data productUpdateControllerData) hb.TagInterface {
+	formProductUpdate := form.NewForm(form.FormOptions{
+		ID: "FormProductUpdate",
+	})
+
+	if data.view == viewContent {
+		formProductUpdate.SetFields(c.formContentFields(data))
+	}
+
+	if data.view == viewMetadata {
+		formProductUpdate.SetFields(c.formMetadataFields(data))
+	}
+
+	if data.view == viewSettings {
+		formProductUpdate.SetFields(c.formSettingsFields(data))
+	}
+
+	if data.formErrorMessage != "" {
+		formProductUpdate.AddField(form.NewField(form.FieldOptions{
+			Type:  form.FORM_FIELD_TYPE_RAW,
+			Value: hb.Swal(hb.SwalOptions{Icon: "error", Text: data.formErrorMessage}).ToHTML(),
+		}))
+	}
+
+	if data.formSuccessMessage != "" {
+		formProductUpdate.AddField(form.NewField(form.FieldOptions{
+			Type:  form.FORM_FIELD_TYPE_RAW,
+			Value: hb.Swal(hb.SwalOptions{Icon: "success", Text: data.formSuccessMessage}).ToHTML(),
+		}))
+	}
+
+	productID := form.NewField(form.FieldOptions{
+		Label:     "Product ID",
+		Name:      "product_id",
+		Type:      form.FORM_FIELD_TYPE_STRING,
+		Value:     data.productID,
+		Readonly:  true,
+		Invisible: true,
+	})
+
+	view := form.NewField(form.FieldOptions{
+		Label:     "View",
+		Name:      "view",
+		Type:      form.FORM_FIELD_TYPE_HIDDEN,
+		Value:     data.view,
+		Readonly:  true,
+		Invisible: true,
+	})
+
+	formProductUpdate.AddField(productID)
+	formProductUpdate.AddField(view)
+
+	return formProductUpdate.Build()
+
+}
+
+func (c *productUpdateController) formContentFields(data productUpdateControllerData) []form.FieldInterface {
 	title := form.NewField(form.FieldOptions{
 		Label: "Title",
 		Name:  "product_title",
@@ -215,84 +313,16 @@ func (controller *productUpdateController) formDetails(data productUpdateControl
 		Help:  `The description of the product.`,
 	})
 
-	price := form.NewField(form.FieldOptions{
-		Label: "Price",
-		Name:  "product_price",
-		Type:  form.FORM_FIELD_TYPE_NUMBER,
-		Value: data.formPrice,
-		Help:  `The price of the product.`,
-	})
-	quantity := form.NewField(form.FieldOptions{
-		Label: "Quantity",
-		Name:  "product_quantity",
-		Type:  form.FORM_FIELD_TYPE_NUMBER,
-		Value: data.formQuantity,
-		Help:  `The quantity of the product that is available to purchase.`,
-	})
-
-	memo := form.NewField(form.FieldOptions{
-		Label: "Admin Notes",
-		Name:  "product_memo",
-		Type:  form.FORM_FIELD_TYPE_TEXTAREA,
-		Value: data.formMemo,
-		Help:  "Admin notes for this product. These notes will not be visible to the public.",
-	})
-
-	productID := form.NewField(form.FieldOptions{
-		Label:    "Product ID",
-		Name:     "product_id",
-		Type:     form.FORM_FIELD_TYPE_STRING,
-		Value:    data.productID,
-		Readonly: true,
-		Help:     "The reference number (ID) of the product.",
-	})
-
-	fieldsDetails := []form.FieldInterface{
-		status,
+	return []form.FieldInterface{
 		title,
 		description,
-		price,
-		quantity,
-		memo,
-		productID,
 	}
-
-	formUserUpdate := form.NewForm(form.FormOptions{
-		ID: "FormProductUpdate",
-	})
-
-	formUserUpdate.SetFields(fieldsDetails)
-
-	if data.formErrorMessage != "" {
-		formUserUpdate.AddField(form.NewField(form.FieldOptions{
-			Type:  form.FORM_FIELD_TYPE_RAW,
-			Value: hb.Swal(hb.SwalOptions{Icon: "error", Text: data.formErrorMessage}).ToHTML(),
-		}))
-	}
-
-	if data.formSuccessMessage != "" {
-		formUserUpdate.AddField(form.NewField(form.FieldOptions{
-			Type:  form.FORM_FIELD_TYPE_RAW,
-			Value: hb.Swal(hb.SwalOptions{Icon: "success", Text: data.formSuccessMessage}).ToHTML(),
-		}))
-	}
-
-	return formUserUpdate.Build()
 }
 
-func (controller *productUpdateController) formMetadata(data productUpdateControllerData) hb.TagInterface {
-	fieldsDetails := []form.FieldInterface{
-		form.NewField(form.FieldOptions{
-			Label:    "Product ID",
-			Name:     "product_id",
-			Type:     form.FORM_FIELD_TYPE_HIDDEN,
-			Value:    data.productID,
-			Readonly: true,
-			//Help:     "The reference number (ID) of the product.",
-		}),
-	}
-
+func (c *productUpdateController) formMetadataFields(data productUpdateControllerData) []form.FieldInterface {
 	metas := data.formMetas
+
+	fields := []form.FieldInterface{}
 
 	index := 0
 	keys := lo.Keys(metas)
@@ -362,7 +392,7 @@ func (controller *productUpdateController) formMetadata(data productUpdateContro
 			}),
 		}
 
-		fieldsDetails = append(fieldsDetails, fieldsMeta...)
+		fields = append(fields, fieldsMeta...)
 
 		index++
 	}
@@ -422,45 +452,78 @@ func (controller *productUpdateController) formMetadata(data productUpdateContro
 		}),
 	}
 
-	fieldsDetails = append(fieldsDetails, fieldsNewMeta...)
+	fields = append(fields, fieldsNewMeta...)
 
-	formMetadataUpdate := form.NewForm(form.FormOptions{
-		ID:     "FormProductMetadataUpdate",
-		Fields: fieldsDetails,
-	})
-
-	if data.formErrorMessage != "" {
-		formMetadataUpdate.AddField(form.NewField(form.FieldOptions{
-			Type:  form.FORM_FIELD_TYPE_RAW,
-			Value: hb.Swal(hb.SwalOptions{Icon: "error", Text: data.formErrorMessage}).ToHTML(),
-		}))
-	}
-
-	if data.formSuccessMessage != "" {
-		formMetadataUpdate.AddField(form.NewField(form.FieldOptions{
-			Type:  form.FORM_FIELD_TYPE_RAW,
-			Value: hb.Swal(hb.SwalOptions{Icon: "success", Text: data.formSuccessMessage}).ToHTML(),
-		}))
-	}
-
-	return formMetadataUpdate.Build()
+	return fields
 }
 
-func (c *productUpdateController) saveProductDetails(data productUpdateControllerData) (d productUpdateControllerData, errorMessage string) {
-	data.formDescription = utils.Req(c.opts.GetRequest(), "product_description", "")
+func (c *productUpdateController) formSettingsFields(data productUpdateControllerData) []form.FieldInterface {
+	status := form.NewField(form.FieldOptions{
+		Label: "Status",
+		Name:  "product_status",
+		Type:  form.FORM_FIELD_TYPE_SELECT,
+		Value: data.formStatus,
+		Help:  `The status of the product.`,
+		Options: []form.FieldOption{
+			{
+				Value: "- not selected -",
+				Key:   "",
+			},
+			{
+				Value: "Active",
+				Key:   shopstore.PRODUCT_STATUS_ACTIVE,
+			},
+			{
+				Value: "Disabled",
+				Key:   shopstore.PRODUCT_STATUS_DISABLED,
+			},
+			{
+				Value: "Draft",
+				Key:   shopstore.PRODUCT_STATUS_DRAFT,
+			},
+		},
+	})
+
+	price := form.NewField(form.FieldOptions{
+		Label: "Price",
+		Name:  "product_price",
+		Type:  form.FORM_FIELD_TYPE_NUMBER,
+		Value: data.formPrice,
+		Help:  `The price of the product.`,
+	})
+
+	quantity := form.NewField(form.FieldOptions{
+		Label: "Quantity",
+		Name:  "product_quantity",
+		Type:  form.FORM_FIELD_TYPE_NUMBER,
+		Value: data.formQuantity,
+		Help:  `The quantity of the product that is available to purchase.`,
+	})
+
+	memo := form.NewField(form.FieldOptions{
+		Label: "Admin Notes",
+		Name:  "product_memo",
+		Type:  form.FORM_FIELD_TYPE_TEXTAREA,
+		Value: data.formMemo,
+		Help:  "Admin notes for this product. These notes will not be visible to the public.",
+	})
+
+	return []form.FieldInterface{
+		status,
+		price,
+		quantity,
+		memo,
+	}
+}
+
+func (c *productUpdateController) saveProductSettings(data productUpdateControllerData) (d productUpdateControllerData, errorMessage string) {
 	data.formMemo = utils.Req(c.opts.GetRequest(), "product_memo", "")
 	data.formPrice = utils.Req(c.opts.GetRequest(), "product_price", "")
 	data.formQuantity = utils.Req(c.opts.GetRequest(), "product_quantity", "")
 	data.formStatus = utils.Req(c.opts.GetRequest(), "product_status", "")
-	data.formTitle = utils.Req(c.opts.GetRequest(), "product_title", "")
 
 	if data.formStatus == "" {
 		data.formErrorMessage = "Status is required"
-		return data, ""
-	}
-
-	if data.formTitle == "" {
-		data.formErrorMessage = "Title is required"
 		return data, ""
 	}
 
@@ -498,12 +561,10 @@ func (c *productUpdateController) saveProductDetails(data productUpdateControlle
 		return data, ""
 	}
 
-	data.product.SetDescription(data.formDescription)
 	data.product.SetMemo(data.formMemo)
 	data.product.SetQuantity(data.formQuantity)
 	data.product.SetPrice(data.formPrice)
 	data.product.SetStatus(data.formStatus)
-	data.product.SetTitle(data.formTitle)
 
 	err := c.opts.GetStore().ProductUpdate(context.Background(), data.product)
 
@@ -513,7 +574,7 @@ func (c *productUpdateController) saveProductDetails(data productUpdateControlle
 		return data, ""
 	}
 
-	data.formSuccessMessage = "Product saved successfully"
+	data.formSuccessMessage = "Product settings saved successfully"
 
 	return data, ""
 }
@@ -610,13 +671,43 @@ func (c *productUpdateController) saveProductMetadata(data productUpdateControll
 	return data, ""
 }
 
+func (c *productUpdateController) saveProductContent(data productUpdateControllerData) (d productUpdateControllerData, errorMessage string) {
+	data.formDescription = utils.Req(c.opts.GetRequest(), "product_description", "")
+	data.formTitle = utils.Req(c.opts.GetRequest(), "product_title", "")
+
+	if data.formTitle == "" {
+		data.formErrorMessage = "Title is required"
+		return data, ""
+	}
+
+	data.product.SetDescription(data.formDescription)
+	data.product.SetTitle(data.formTitle)
+
+	err := c.opts.GetStore().ProductUpdate(context.Background(), data.product)
+
+	if err != nil {
+		c.opts.GetLogger().Error("At productUpdateController > prepareDataAndValidate", "error", err.Error())
+		data.formErrorMessage = "System error. Saving details failed"
+		return data, ""
+	}
+
+	data.formSuccessMessage = "Product contents saved successfully"
+
+	return data, ""
+}
+
 func (c *productUpdateController) prepareDataAndValidate() (data productUpdateControllerData, errorMessage string) {
 	data.request = c.opts.GetRequest()
 	data.action = utils.Req(c.opts.GetRequest(), "action", "")
 	data.productID = utils.Req(c.opts.GetRequest(), "product_id", "")
+	data.view = utils.Req(c.opts.GetRequest(), "view", "")
 
 	if data.productID == "" {
 		return data, "Product ID is required"
+	}
+
+	if data.view == "" {
+		data.view = viewContent
 	}
 
 	product, err := c.opts.GetStore().ProductFindByID(context.Background(), data.productID)
@@ -651,15 +742,29 @@ func (c *productUpdateController) prepareDataAndValidate() (data productUpdateCo
 		return data, ""
 	}
 
-	if data.action == "update-details" {
-		return c.saveProductDetails(data)
+	if data.view == viewContent {
+		return c.saveProductContent(data)
 	}
 
-	if data.action == "update-metadata" {
+	if data.view == viewMetadata {
 		return c.saveProductMetadata(data)
 	}
 
-	return data, "action is required"
+	if data.view == viewSettings {
+		return c.saveProductSettings(data)
+	}
+
+	return data, "view is required"
+
+	// if data.action == "update-details" {
+	// 	return c.saveProductDetails(data)
+	// }
+
+	// if data.action == "update-metadata" {
+	// 	return c.saveProductMetadata(data)
+	// }
+
+	// return data, "action is required"
 }
 
 type productUpdateControllerData struct {
@@ -667,6 +772,7 @@ type productUpdateControllerData struct {
 	action    string
 	productID string
 	product   shopstore.ProductInterface
+	view      string
 
 	formErrorMessage   string
 	formSuccessMessage string
