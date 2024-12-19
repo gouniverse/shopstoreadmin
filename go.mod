@@ -15,13 +15,14 @@ require (
 )
 
 require (
+	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/darkoatanasovski/htmltags v1.0.0 // indirect
 	github.com/doug-martin/goqu/v9 v9.19.0 // indirect
-	github.com/dromara/carbon/v2 v2.5.1 // indirect
+	github.com/dromara/carbon/v2 v2.5.2 // indirect
 	github.com/georgysavva/scany v1.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gouniverse/api v1.6.0 // indirect
-	github.com/gouniverse/base v0.0.7 // indirect
+	github.com/gouniverse/base v0.4.0
 	github.com/gouniverse/crypto v0.2.0 // indirect
 	github.com/gouniverse/dataobject v0.3.0 // indirect
 	github.com/gouniverse/envenc v0.8.0 // indirect
@@ -34,10 +35,10 @@ require (
 	github.com/logrusorgru/aurora v2.0.3+incompatible // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mingrammer/cfmt v1.1.0 // indirect
-	golang.org/x/crypto v0.29.0 // indirect
-	golang.org/x/net v0.31.0 // indirect
-	golang.org/x/sys v0.27.0 // indirect
-	golang.org/x/term v0.26.0 // indirect
-	golang.org/x/text v0.20.0 // indirect
+	github.com/mingrammer/cfmt v1.1.0
+	golang.org/x/crypto v0.31.0 // indirect
+	golang.org/x/net v0.33.0 // indirect
+	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/term v0.27.0 // indirect
+	golang.org/x/text v0.21.0 // indirect
 )

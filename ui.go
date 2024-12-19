@@ -44,8 +44,16 @@ func handler(options UiOptionsInterface) hb.TagInterface {
 		return productCreate(options)
 	}
 
+	if controller == pathProductDelete {
+		return productDelete(options)
+	}
+
 	if controller == pathProducts {
 		return productManager(options)
+	}
+
+	if controller == pathProductUpdate {
+		return productUpdate(options)
 	}
 
 	options.GetLayout().SetBody(hb.H1().HTML(controller).ToHTML())
