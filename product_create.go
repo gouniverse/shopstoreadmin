@@ -20,6 +20,10 @@ func productCreate(opts UiOptionsInterface) pageInterface {
 	}
 }
 
+// ===========================================================================
+// == CONTROLLER
+// ===========================================================================
+
 type productCreateController struct {
 	opts UiOptionsInterface
 }
