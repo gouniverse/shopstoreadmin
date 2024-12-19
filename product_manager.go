@@ -34,11 +34,17 @@ func productManager(opts UiOptionsInterface) pageInterface {
 	}
 }
 
-// == CONTROLLER ==============================================================
+// ===========================================================================
+// == CONTROLLER
+// ===========================================================================
 
 type productManagerController struct {
 	opts UiOptionsInterface
 }
+
+// ===========================================================================
+// == INTERFACE IMPLEMENTATION
+// ===========================================================================
 
 func (c *productManagerController) ToTag() hb.TagInterface {
 	data, errorMessage := c.prepareData(c.opts.GetRequest())
@@ -70,6 +76,10 @@ func (c *productManagerController) ToTag() hb.TagInterface {
 func (controller *productManagerController) ToHTML() string {
 	return controller.ToTag().ToHTML()
 }
+
+// ===========================================================================
+// == METHODS
+// ===========================================================================
 
 func (controller *productManagerController) onModalProductFilterShow(data productManagerControllerData) *hb.Tag {
 	modalCloseScript := `document.getElementById('ModalMessage').remove();document.getElementById('ModalBackdrop').remove();`

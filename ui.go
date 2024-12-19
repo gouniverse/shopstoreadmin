@@ -40,6 +40,10 @@ func handler(options UiOptionsInterface) hb.TagInterface {
 		// return visitorActivity(*ui)
 	}
 
+	if controller == pathProductCreate {
+		return productCreate(options)
+	}
+
 	if controller == pathProducts {
 		return productManager(options)
 	}
