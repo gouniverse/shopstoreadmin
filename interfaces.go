@@ -4,8 +4,14 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/gouniverse/hb"
 	"github.com/gouniverse/shopstore"
 )
+
+type pageInterface interface {
+	ToTag() hb.TagInterface
+	ToHTML() string
+}
 
 type Layout interface {
 	SetTitle(title string)

@@ -24,20 +24,20 @@ import (
 
 const ActionModalProductFilterShow = "modal_product_filter_show"
 
+// ===========================================================================
+// == CONSTRUCTOR
+// ===========================================================================
+
+func productManager(opts UiOptionsInterface) pageInterface {
+	return &productManagerController{
+		opts: opts,
+	}
+}
+
 // == CONTROLLER ==============================================================
 
 type productManagerController struct {
 	opts UiOptionsInterface
-}
-
-// var _ router.HTMLControllerInterface = (*productManagerController)(nil)
-
-// == CONSTRUCTOR =============================================================
-
-func NewProductManagerController(opts UiOptionsInterface) *productManagerController {
-	return &productManagerController{
-		opts: opts,
-	}
 }
 
 func (c *productManagerController) ToTag() hb.TagInterface {
@@ -67,6 +67,10 @@ func (c *productManagerController) ToTag() hb.TagInterface {
 	return hb.Raw(c.opts.GetLayout().Render(c.opts.GetResponseWriter(), c.opts.GetRequest()))
 }
 
+func (controller *productManagerController) ToHTML() string {
+	return controller.ToTag().ToHTML()
+}
+
 func (controller *productManagerController) onModalProductFilterShow(data productManagerControllerData) *hb.Tag {
 	modalCloseScript := `document.getElementById('ModalMessage').remove();document.getElementById('ModalBackdrop').remove();`
 
@@ -91,77 +95,101 @@ func (controller *productManagerController) onModalProductFilterShow(data produc
 		Class("btn btn-primary float-end").
 		OnClick(`FormFilters.submit();` + modalCloseScript)
 
+	fieldStatus := form.NewField(form.FieldOptions{
+		Label: "Status",
+		Name:  "filter_status",
+		Type:  form.FORM_FIELD_TYPE_SELECT,
+		Help:  `The status of the product.`,
+		Value: data.formStatus,
+		Options: []form.FieldOption{
+			{
+				Value: "",
+				Key:   "",
+			},
+			{
+				Value: "Active",
+				Key:   shopstore.PRODUCT_STATUS_ACTIVE,
+			},
+			{
+				Value: "Disabled",
+				Key:   shopstore.PRODUCT_STATUS_DISABLED,
+			},
+			{
+				Value: "Draft",
+				Key:   shopstore.PRODUCT_STATUS_DRAFT,
+			},
+		},
+	})
+
+	fieldTitle := form.NewField(form.FieldOptions{
+		Label: "Title",
+		Name:  "filter_title",
+		Type:  form.FORM_FIELD_TYPE_STRING,
+		Value: data.formTitle,
+		Help:  `Filter by title.`,
+	})
+
+	fieldCreatedFrom := form.NewField(form.FieldOptions{
+		Label: "Created From",
+		Name:  "filter_created_from",
+		Type:  form.FORM_FIELD_TYPE_DATE,
+		Value: data.formCreatedFrom,
+		Help:  `Filter by creation date.`,
+	})
+
+	fieldCreatedTo := form.NewField(form.FieldOptions{
+		Label: "Created To",
+		Name:  "filter_created_to",
+		Type:  form.FORM_FIELD_TYPE_DATE,
+		Value: data.formCreatedTo,
+		Help:  `Filter by creation date.`,
+	})
+
+	fieldUpdatedFrom := form.NewField(form.FieldOptions{
+		Label: "Updated From",
+		Name:  "filter_updated_from",
+		Type:  form.FORM_FIELD_TYPE_DATE,
+		Value: data.formUpdatedFrom,
+		Help:  `Filter by update date.`,
+	})
+
+	fieldUpdatedTo := form.NewField(form.FieldOptions{
+		Label: "Updated To",
+		Name:  "filter_updated_to",
+		Type:  form.FORM_FIELD_TYPE_DATE,
+		Value: data.formUpdatedTo,
+		Help:  `Filter by update date.`,
+	})
+
+	fieldProductID := form.NewField(form.FieldOptions{
+		Label: "Product ID",
+		Name:  "filter_product_id",
+		Type:  form.FORM_FIELD_TYPE_STRING,
+		Value: data.formProductID,
+		Help:  `Find product by reference number (ID).`,
+	})
+
+	fieldController := form.NewField(form.FieldOptions{
+		Label:     "Controller",
+		Name:      "controller",
+		Type:      form.FORM_FIELD_TYPE_STRING,
+		Value:     pathProducts,
+		Help:      `Required to display the correct page.`,
+		Invisible: true,
+	})
+
 	filterForm := form.NewForm(form.FormOptions{
 		ID:     "FormFilters",
 		Method: http.MethodGet,
 		Fields: []form.FieldInterface{
-			form.NewField(form.FieldOptions{
-				Label: "Status",
-				Name:  "filter_status",
-				Type:  form.FORM_FIELD_TYPE_SELECT,
-				Help:  `The status of the product.`,
-				Value: data.formStatus,
-				Options: []form.FieldOption{
-					{
-						Value: "",
-						Key:   "",
-					},
-					{
-						Value: "Active",
-						Key:   shopstore.PRODUCT_STATUS_ACTIVE,
-					},
-					{
-						Value: "Disabled",
-						Key:   shopstore.PRODUCT_STATUS_DISABLED,
-					},
-					{
-						Value: "Draft",
-						Key:   shopstore.PRODUCT_STATUS_DRAFT,
-					},
-				},
-			}),
-			form.NewField(form.FieldOptions{
-				Label: "Title",
-				Name:  "filter_title",
-				Type:  form.FORM_FIELD_TYPE_STRING,
-				Value: data.formTitle,
-				Help:  `Filter by title.`,
-			}),
-			form.NewField(form.FieldOptions{
-				Label: "Created From",
-				Name:  "filter_created_from",
-				Type:  form.FORM_FIELD_TYPE_DATE,
-				Value: data.formCreatedFrom,
-				Help:  `Filter by creation date.`,
-			}),
-			form.NewField(form.FieldOptions{
-				Label: "Created To",
-				Name:  "filter_created_to",
-				Type:  form.FORM_FIELD_TYPE_DATE,
-				Value: data.formCreatedTo,
-				Help:  `Filter by creation date.`,
-			}),
-			form.NewField(form.FieldOptions{
-				Label: "Updated From",
-				Name:  "filter_updated_from",
-				Type:  form.FORM_FIELD_TYPE_DATE,
-				Value: data.formUpdatedFrom,
-				Help:  `Filter by update date.`,
-			}),
-			form.NewField(form.FieldOptions{
-				Label: "Updated To",
-				Name:  "filter_updated_to",
-				Type:  form.FORM_FIELD_TYPE_DATE,
-				Value: data.formUpdatedTo,
-				Help:  `Filter by update date.`,
-			}),
-			form.NewField(form.FieldOptions{
-				Label: "Product ID",
-				Name:  "filter_product_id",
-				Type:  form.FORM_FIELD_TYPE_STRING,
-				Value: data.formProductID,
-				Help:  `Find product by reference number (ID).`,
-			}),
+			fieldStatus,
+			fieldTitle,
+			fieldCreatedFrom,
+			fieldCreatedTo,
+			fieldUpdatedFrom,
+			fieldUpdatedTo,
+			fieldProductID,
+			fieldController,
 		},
 	}).Build()
 
@@ -227,7 +255,7 @@ func (controller *productManagerController) page(data productManagerControllerDa
 		Class("container").
 		Child(breadcrumbs).
 		Child(hb.HR()).
-		Child(Header(controller.opts)).
+		Child(header(controller.opts)).
 		Child(hb.HR()).
 		Child(title).
 		Child(controller.tableProducts(data))

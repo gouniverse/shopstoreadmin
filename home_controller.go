@@ -1,11 +1,8 @@
 package shopstoreadmin
 
 import (
-	"net/http"
-
 	"github.com/gouniverse/cdn"
 	"github.com/gouniverse/hb"
-	"github.com/gouniverse/shopstore/admin/shared"
 	"github.com/samber/lo"
 )
 
@@ -13,7 +10,7 @@ import (
 // == CONSTRUCTOR
 // =============================================================================
 
-func home(options UiOptionsInterface) shared.PageInterface {
+func home(options UiOptionsInterface) pageInterface {
 	return &homeController{
 		opts: options,
 	}
@@ -29,7 +26,7 @@ type homeController struct {
 
 type homeControllerData struct{}
 
-func (c *homeController) ToTag(w http.ResponseWriter, r *http.Request) hb.TagInterface {
+func (c *homeController) ToTag() hb.TagInterface {
 	data, errorMessage := c.prepareData()
 
 	c.opts.GetLayout().SetTitle("Dashboard | Shop")
@@ -39,7 +36,7 @@ func (c *homeController) ToTag(w http.ResponseWriter, r *http.Request) hb.TagInt
 			Class("alert alert-danger").
 			Text(errorMessage).ToHTML())
 
-		return hb.Raw(c.opts.GetLayout().Render(w, r))
+		return hb.Raw(c.opts.GetLayout().Render(c.opts.GetResponseWriter(), c.opts.GetRequest()))
 	}
 
 	htmxScript := `setTimeout(() => async function() {
@@ -69,11 +66,11 @@ func (c *homeController) ToTag(w http.ResponseWriter, r *http.Request) hb.TagInt
 	c.opts.GetLayout().SetBody(c.page(data).ToHTML())
 	c.opts.GetLayout().SetScripts([]string{htmxScript, swalScript})
 
-	return hb.Raw(c.opts.GetLayout().Render(w, r))
+	return hb.Raw(c.opts.GetLayout().Render(c.opts.GetResponseWriter(), c.opts.GetRequest()))
 }
 
 func (c *homeController) ToHTML() string {
-	return c.ToTag(nil, nil).ToHTML()
+	return c.ToTag().ToHTML()
 }
 
 // == PRIVATE METHODS ==========================================================
@@ -92,14 +89,16 @@ func (c *homeController) page(_ homeControllerData) hb.TagInterface {
 		Class("container").
 		Child(breadcrumbs).
 		Child(hb.HR()).
-		Child(Header(c.opts)).
+		Child(header(c.opts)).
 		Child(hb.HR()).
 		Child(title).
 		Child(hb.BR()).
 		Child(c.tiles())
 }
 
-// == PRIVATE METHODS ==========================================================
+// ===========================================================================
+// == PRIVATE METHODS
+// ===========================================================================
 
 func (c *homeController) tiles() hb.TagInterface {
 	ordersURL := url(c.opts.GetRequest(), pathOrders, nil)

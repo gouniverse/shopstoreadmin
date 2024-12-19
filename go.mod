@@ -2,8 +2,6 @@ module github.com/gouniverse/shopstoreadmin
 
 go 1.23.3
 
-toolchain go1.23.4
-
 require (
 	github.com/gouniverse/bs v0.13.0
 	github.com/gouniverse/cdn v1.5.0

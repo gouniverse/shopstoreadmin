@@ -41,7 +41,7 @@ func handler(options UiOptionsInterface) hb.TagInterface {
 	}
 
 	if controller == pathProducts {
-		return NewProductManagerController(options).ToTag()
+		return productManager(options)
 	}
 
 	options.GetLayout().SetBody(hb.H1().HTML(controller).ToHTML())
