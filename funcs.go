@@ -2,6 +2,7 @@ package shopstoreadmin
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gouniverse/hb"
 	"github.com/gouniverse/shopstore"
@@ -193,4 +194,78 @@ func query(queryData map[string]string) string {
 
 func httpBuildQuery(queryData urlpkg.Values) string {
 	return queryData.Encode()
+}
+
+// isDate checks if a string is a valid date
+// the format is YYYY-MM-DD
+//
+// Business logic:
+// - checks if the string contains 2 dashes
+// - checks if the string does not contain colons
+// - checks the first dash is at position 4
+// - checks the second dash is at position 7
+func isDate(value string) bool {
+	countDashes := strings.Count(value, "-")
+
+	if countDashes != 2 {
+		return false
+	}
+
+	countColons := strings.Count(value, ":")
+
+	if countColons > 0 {
+		return false
+	}
+
+	if strings.Index(value, "-") != 4 {
+		return false
+	}
+
+	if strings.LastIndex(value, "-") != 7 {
+		return false
+	}
+
+	return true
+}
+
+// isDateTime checks if a string is a valid datetime
+// the format is YYYY-MM-DD HH:MM:SS
+//
+// Business logic:
+// - checks if the string contains 2 dashes
+// - checks if the string contains 2 colons
+// - checks the first dash is at position 4
+// - checks the second dash is at position 7
+// - checks the first colon is at position 10
+// - checks the second colon is at position 13
+func isDateTime(value string) bool {
+	countDashes := strings.Count(value, "-")
+
+	if countDashes != 2 {
+		return false
+	}
+
+	countColons := strings.Count(value, ":")
+
+	if countColons != 2 {
+		return false
+	}
+
+	if strings.Index(value, "-") != 4 {
+		return false
+	}
+
+	if strings.LastIndex(value, "-") != 7 {
+		return false
+	}
+
+	if strings.Index(value, ":") != 13 {
+		return false
+	}
+
+	if strings.LastIndex(value, ":") != 16 {
+		return false
+	}
+
+	return true
 }

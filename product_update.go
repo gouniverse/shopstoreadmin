@@ -14,6 +14,7 @@ import (
 	"github.com/gouniverse/form"
 	"github.com/gouniverse/hb"
 	"github.com/gouniverse/shopstore"
+	"github.com/gouniverse/uid"
 	"github.com/gouniverse/utils"
 	"github.com/mingrammer/cfmt"
 	"github.com/samber/lo"
@@ -321,7 +322,7 @@ func (c *productUpdateController) formMediaFields(data productUpdateControllerDa
 	fieldID := form.NewField(form.FieldOptions{
 		ID:    "product_media_id",
 		Label: "ID",
-		Name:  "product_media[id]",
+		Name:  "id",
 		Type:  form.FORM_FIELD_TYPE_STRING,
 		Help:  `The ID of the media.`,
 	})
@@ -329,7 +330,7 @@ func (c *productUpdateController) formMediaFields(data productUpdateControllerDa
 	fieldTitle := form.NewField(form.FieldOptions{
 		ID:    "product_media_title",
 		Label: "Title",
-		Name:  "product_media[title]",
+		Name:  "title",
 		Type:  form.FORM_FIELD_TYPE_STRING,
 		Help:  `The Title of the media.`,
 	})
@@ -337,7 +338,7 @@ func (c *productUpdateController) formMediaFields(data productUpdateControllerDa
 	fieldURL := form.NewField(form.FieldOptions{
 		ID:    "product_media_url",
 		Label: "URL",
-		Name:  "product_media[url]",
+		Name:  "url",
 		Type:  form.FORM_FIELD_TYPE_STRING,
 		Help:  `The URL of the media.`,
 	})
@@ -682,9 +683,11 @@ func (c *productUpdateController) saveProductMedia(data productUpdateControllerD
 
 	productMedia := lo.Map(media, func(m map[string]string, index int) map[string]string {
 		id := strings.TrimSpace(m["id"])
+		title := strings.TrimSpace(m["title"])
 		url := strings.TrimSpace(m["url"])
 		entry := map[string]string{}
 		entry["id"] = id
+		entry["title"] = title
 		entry["url"] = url
 		return entry
 	})
@@ -695,7 +698,9 @@ func (c *productUpdateController) saveProductMedia(data productUpdateControllerD
 
 	if data.action == "add" {
 		data.formMedia = append(data.formMedia, map[string]string{
-			"url": "",
+			"id":    uid.HumanUid(),
+			"title": "",
+			"url":   "",
 		})
 		return data, ""
 	}

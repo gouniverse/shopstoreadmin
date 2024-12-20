@@ -8,11 +8,13 @@ require (
 	github.com/gouniverse/form v0.16.0
 	github.com/gouniverse/hb v1.80.1
 	github.com/gouniverse/sb v0.8.0
-	github.com/gouniverse/shopstore v0.13.0
+	github.com/gouniverse/shopstore v0.14.0
 	github.com/gouniverse/utils v1.45.4
 	github.com/samber/lo v1.47.0
 	github.com/spf13/cast v1.7.1
 )
+
+require github.com/gouniverse/icons v1.3.1 // indirect
 
 require (
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
@@ -23,12 +25,13 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gouniverse/api v1.6.0 // indirect
 	github.com/gouniverse/base v0.5.0
+	github.com/gouniverse/crud/v2 v2.0.0-20241105205902-6a295ae50112
 	github.com/gouniverse/crypto v0.2.0 // indirect
 	github.com/gouniverse/dataobject v0.3.0 // indirect
 	github.com/gouniverse/envenc v0.8.0 // indirect
 	github.com/gouniverse/maputils v0.7.0 // indirect
 	github.com/gouniverse/strutils v0.6.0 // indirect
-	github.com/gouniverse/uid v1.5.0 // indirect
+	github.com/gouniverse/uid v1.5.0
 	github.com/gouniverse/webserver v0.1.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/jordan-wright/email v4.0.1-0.20210109023952-943e75fe5223+incompatible // indirect

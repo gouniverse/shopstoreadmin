@@ -28,32 +28,61 @@ func New(options UiOptionsInterface) (hb.TagInterface, error) {
 func handler(options UiOptionsInterface) hb.TagInterface {
 	controller := utils.Req(options.GetRequest(), "controller", "")
 
-	if controller == "" {
-		controller = pathHome
+	controllers := map[string]pageInterface{
+		"":                 home(options),
+		pathHome:           home(options),
+		pathDiscountCreate: discountCreate(options),
+		pathDiscountDelete: discountDelete(options),
+		pathDiscountUpdate: discountUpdate(options),
+		pathDiscounts:      discountManager(options),
+		pathProductCreate:  productCreate(options),
+		pathProductDelete:  productDelete(options),
+		pathProducts:       productManager(options),
+		pathProductUpdate:  productUpdate(options),
 	}
 
-	if controller == pathHome {
-		return home(options)
-	}
+	// if controller == "" {
+	// 	controller = pathHome
+	// }
 
-	if controller == pathDiscounts {
-		// return visitorActivity(*ui)
-	}
+	// if controller == pathHome {
+	// 	return home(options)
+	// }
 
-	if controller == pathProductCreate {
-		return productCreate(options)
-	}
+	// if controller == pathDiscountCreate {
+	// 	return discountCreate(options)
+	// }
 
-	if controller == pathProductDelete {
-		return productDelete(options)
-	}
+	// if controller == pathDiscountDelete {
+	// 	return discountDelete(options)
+	// }
 
-	if controller == pathProducts {
-		return productManager(options)
-	}
+	// // if controller == pathDiscountUpdate {
+	// // 	return discountUpdate(options)
+	// // }
 
-	if controller == pathProductUpdate {
-		return productUpdate(options)
+	// if controller == pathDiscounts {
+	// 	return discountManager(options)
+	// }
+
+	// if controller == pathProductCreate {
+	// 	return productCreate(options)
+	// }
+
+	// if controller == pathProductDelete {
+	// 	return productDelete(options)
+	// }
+
+	// if controller == pathProducts {
+	// 	return productManager(options)
+	// }
+
+	// if controller == pathProductUpdate {
+	// 	return productUpdate(options)
+	// }
+
+	if page, ok := controllers[controller]; ok {
+		return page
 	}
 
 	options.GetLayout().SetBody(hb.H1().HTML(controller).ToHTML())
