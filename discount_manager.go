@@ -63,13 +63,12 @@ func (c *discountManagerController) ToTag() hb.TagInterface {
 		cdn.Htmx_2_0_0(),
 		cdn.Sweetalert2_10(),
 	})
-
 	c.opts.GetLayout().SetStyles([]string{
 		`
 .htmx-indicator {
     display: none;
 }
-.htmx-request .htmx-indicator {
+.htmx-request.htmx-indicator {
     display: inline-block;
 }
 		`,

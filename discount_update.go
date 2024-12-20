@@ -63,6 +63,17 @@ func (c *discountUpdateController) ToTag() hb.TagInterface {
 		cdn.TrumbowygJs_2_27_3(),
 	})
 
+	c.opts.GetLayout().SetStyles([]string{
+		`
+.htmx-indicator {
+    display: none;
+}
+.htmx-request.htmx-indicator {
+    display: inline-block;
+}
+		`,
+	})
+
 	return hb.Raw(c.opts.GetLayout().Render(c.opts.GetResponseWriter(), c.opts.GetRequest()))
 }
 

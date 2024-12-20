@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/gouniverse/bs"
+	"github.com/gouniverse/cdn"
 	"github.com/gouniverse/form"
 	"github.com/gouniverse/hb"
 	"github.com/gouniverse/sb"
@@ -57,18 +58,21 @@ func (c *productManagerController) ToTag() hb.TagInterface {
 		return c.onModalProductFilterShow(data)
 	}
 
-	// return layouts.NewAdminLayout(r, layouts.Options{
-	// 	Title:   "Products | Shop",
-	// 	Content: controller.page(data),
-	// 	ScriptURLs: []string{
-	// 		cdn.Htmx_1_9_4(),
-	// 		cdn.Sweetalert2_10(),
-	// 	},
-	// 	Styles: []string{},
-	// }).ToHTML()
-
 	c.opts.GetLayout().SetBody(c.page(data).ToHTML())
-	// c.opts.GetLayout().SetScripts([]string{htmxScript, swalScript})
+	c.opts.GetLayout().SetScriptURLs([]string{
+		cdn.Htmx_2_0_0(),
+		cdn.Sweetalert2_10(),
+	})
+	c.opts.GetLayout().SetStyles([]string{
+		`
+.htmx-indicator {
+    display: none;
+}
+.htmx-request.htmx-indicator {
+    display: inline-block;
+}
+		`,
+	})
 
 	return hb.Raw(c.opts.GetLayout().Render(c.opts.GetResponseWriter(), c.opts.GetRequest()))
 }

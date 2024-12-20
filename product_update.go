@@ -70,6 +70,16 @@ func (c *productUpdateController) ToTag() hb.TagInterface {
 		cdn.Jquery_3_7_1(),
 		cdn.TrumbowygJs_2_27_3(),
 	})
+	c.opts.GetLayout().SetStyles([]string{
+		`
+.htmx-indicator {
+    display: none;
+}
+.htmx-request.htmx-indicator {
+    display: inline-block;
+}
+		`,
+	})
 
 	return hb.Raw(c.opts.GetLayout().Render(c.opts.GetResponseWriter(), c.opts.GetRequest()))
 }
@@ -110,6 +120,8 @@ func (c *productUpdateController) page(data productUpdateControllerData) hb.TagI
 		Class("btn btn-primary ms-2 float-end").
 		Child(hb.I().Class("bi bi-save").Style("margin-top:-4px;margin-right:8px;font-size:16px;")).
 		HTML("Save").
+		Child(hb.Div().ID("ButtonSaveIndicator").Class("spinner-border spinner-border-sm ms-2 htmx-indicator")).
+		HxIndicator("#ButtonSaveIndicator").
 		HxInclude("#FormProductUpdate").
 		HxPost(productUpdateURL).
 		HxTarget("#FormProductUpdate")

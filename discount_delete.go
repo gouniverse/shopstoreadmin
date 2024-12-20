@@ -73,8 +73,12 @@ func (controller *discountDeleteController) modal(data discountDeleteControllerD
 		Value(data.discountID)
 
 	buttonDelete := hb.Button().
+		Type("button").
+		Child(hb.I().Class("bi bi-trash me-2")).
 		HTML("Delete").
-		Class("btn btn-primary float-end").
+		Class("btn btn-danger float-end").
+		Child(hb.Div().ID("ButtonDeleteIndicator").Class("spinner-border spinner-border-sm ms-2 htmx-indicator")).
+		HxIndicator("#ButtonDeleteIndicator").
 		HxInclude("#Modal" + modalID).
 		HxPost(submitUrl).
 		HxSelectOob("#ModalDiscountDelete").
@@ -85,7 +89,9 @@ func (controller *discountDeleteController) modal(data discountDeleteControllerD
 
 	modalHeading := hb.Heading5().HTML("Delete Discount").Style(`margin:0px;`)
 
-	modalClose := hb.Button().Type("button").
+	modalClose := hb.Button().
+		Type("button").
+		Child(hb.I().Class("bi bi-chevron-left")).
 		Class("btn-close").
 		Data("bs-dismiss", "modal").
 		OnClick(modalCloseScript)
