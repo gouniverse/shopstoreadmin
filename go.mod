@@ -20,11 +20,11 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/darkoatanasovski/htmltags v1.0.0 // indirect
 	github.com/doug-martin/goqu/v9 v9.19.0 // indirect
-	github.com/dromara/carbon/v2 v2.5.2 // indirect
+	github.com/dromara/carbon/v2 v2.5.2
 	github.com/georgysavva/scany v1.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gouniverse/api v1.6.0 // indirect
-	github.com/gouniverse/base v0.5.0
+	github.com/gouniverse/base v0.7.0
 	github.com/gouniverse/crud/v2 v2.0.0-20241105205902-6a295ae50112
 	github.com/gouniverse/crypto v0.2.0 // indirect
 	github.com/gouniverse/dataobject v0.3.0 // indirect

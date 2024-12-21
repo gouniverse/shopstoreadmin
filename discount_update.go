@@ -7,6 +7,7 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/dromara/carbon/v2"
+	"github.com/gouniverse/base/vld"
 	"github.com/gouniverse/cdn"
 	"github.com/gouniverse/crud/v2"
 	"github.com/gouniverse/form"
@@ -445,12 +446,12 @@ func (c *discountUpdateController) saveDiscount(data discountUpdateControllerDat
 
 	cfmt.Infoln(data.formStartsAt, data.formEndsAt)
 
-	if !isDateTime(data.formStartsAt) {
+	if !vld.IsDateTime(data.formStartsAt) {
 		data.formErrorMessage = "Starts at must be a valid date"
 		return data, ""
 	}
 
-	if !isDateTime(data.formEndsAt) {
+	if !vld.IsDateTime(data.formEndsAt) {
 		data.formErrorMessage = "Ends at must be a valid date"
 		return data, ""
 	}

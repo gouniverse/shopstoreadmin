@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/gouniverse/base/arr"
 	"github.com/gouniverse/base/req"
 	"github.com/gouniverse/bs"
 	"github.com/gouniverse/cdn"
@@ -20,11 +21,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/spf13/cast"
 )
-
-const viewContent = "content"
-const viewMetadata = "metadata"
-const viewMedia = "media"
-const viewSettings = "settings"
 
 // ===========================================================================
 // == CONSTRUCTOR
@@ -140,6 +136,7 @@ func (c *productUpdateController) page(data productUpdateControllerData) hb.TagI
 				Style(`display:flex;justify-content:space-between;align-items:center;`).
 				Child(hb.Heading4().
 					HTMLIf(data.view == viewContent, "Product Contents").
+					HTMLIf(data.view == viewMedia, "Product Media").
 					HTMLIf(data.view == viewMetadata, "Product Metadata").
 					HTMLIf(data.view == viewSettings, "Product Settings").
 					Style("margin-bottom:0;display:inline-block;")).
@@ -173,7 +170,7 @@ func (controller *productUpdateController) tabs(data productUpdateControllerData
 		"view":       viewContent,
 	})
 
-	viewMedia := url(controller.opts.GetRequest(), pathProductUpdate, map[string]string{
+	viewMediaURL := url(controller.opts.GetRequest(), pathProductUpdate, map[string]string{
 		"product_id": data.productID,
 		"view":       viewMedia,
 	})
@@ -198,7 +195,7 @@ func (controller *productUpdateController) tabs(data productUpdateControllerData
 		Child(bs.NavItem().
 			Child(bs.NavLink().
 				ClassIf(data.view == viewMedia, "active").
-				Href(viewMedia).
+				Href(viewMediaURL).
 				HTML("Media"))).
 		Child(bs.NavItem().
 			Child(bs.NavLink().
@@ -332,11 +329,13 @@ func (c *productUpdateController) formMediaFields(data productUpdateControllerDa
 	})
 
 	fieldID := form.NewField(form.FieldOptions{
-		ID:    "product_media_id",
-		Label: "ID",
-		Name:  "id",
-		Type:  form.FORM_FIELD_TYPE_STRING,
-		Help:  `The ID of the media.`,
+		ID:        "product_media_id",
+		Label:     "ID",
+		Name:      "id",
+		Type:      form.FORM_FIELD_TYPE_STRING,
+		Help:      `The ID of the media.`,
+		Readonly:  true,
+		Invisible: true,
 	})
 
 	fieldTitle := form.NewField(form.FieldOptions{
@@ -344,15 +343,47 @@ func (c *productUpdateController) formMediaFields(data productUpdateControllerDa
 		Label: "Title",
 		Name:  "title",
 		Type:  form.FORM_FIELD_TYPE_STRING,
-		Help:  `The Title of the media.`,
+		Help:  `The title of the media.`,
+	})
+
+	fieldType := form.NewField(form.FieldOptions{
+		ID:    "product_media_type",
+		Label: "Type",
+		Name:  "type",
+		Type:  form.FORM_FIELD_TYPE_SELECT,
+		Help:  `The type of the media.`,
+		Options: []form.FieldOption{
+			{
+				Value: "Image (JPG)",
+				Key:   shopstore.MEDIA_TYPE_IMAGE_JPG,
+			},
+			{
+				Value: "Image (PNG)",
+				Key:   shopstore.MEDIA_TYPE_IMAGE_PNG,
+			},
+			// {
+			// 	Value: "Image (WEBP)",
+			// 	Key:   shopstore.MEDIA_TYPE_IMAGE_WEBP,
+			// },
+			{
+				Value: "Video (MP4)",
+				Key:   shopstore.MEDIA_TYPE_VIDEO_MP4,
+			},
+			// {
+			// 	Value: "Video (WEBM)",
+			// 	Key:   shopstore.MEDIA_TYPE_VIDEO_WEBM,
+			// },
+		},
+		Required: true,
 	})
 
 	fieldURL := form.NewField(form.FieldOptions{
-		ID:    "product_media_url",
-		Label: "URL",
-		Name:  "url",
-		Type:  form.FORM_FIELD_TYPE_STRING,
-		Help:  `The URL of the media.`,
+		ID:       "product_media_url",
+		Label:    "URL",
+		Name:     "url",
+		Type:     form.FORM_FIELD_TYPE_STRING,
+		Help:     `The URL of the media. Must be a valid URL starting with http:// or https://.`,
+		Required: true,
 	})
 
 	repeater := form.NewRepeater(form.RepeaterOptions{
@@ -366,8 +397,9 @@ func (c *productUpdateController) formMediaFields(data productUpdateControllerDa
 		RepeaterRemoveUrl:   repeaterRemoveURL,
 		Fields: []form.FieldInterface{
 			fieldID,
-			fieldTitle,
 			fieldURL,
+			fieldTitle,
+			fieldType,
 		},
 	})
 
@@ -573,6 +605,221 @@ func (c *productUpdateController) formSettingsFields(data productUpdateControlle
 	}
 }
 
+func (c *productUpdateController) saveProductContent(data productUpdateControllerData) (d productUpdateControllerData, errorMessage string) {
+	data.formDescription = utils.Req(c.opts.GetRequest(), "product_description", "")
+	data.formShortDescription = utils.Req(c.opts.GetRequest(), "product_short_description", "")
+	data.formTitle = utils.Req(c.opts.GetRequest(), "product_title", "")
+
+	if data.formTitle == "" {
+		data.formErrorMessage = "Title is required"
+		return data, ""
+	}
+
+	data.product.SetDescription(data.formDescription)
+	data.product.SetShortDescription(data.formShortDescription)
+	data.product.SetTitle(data.formTitle)
+
+	err := c.opts.GetStore().ProductUpdate(context.Background(), data.product)
+
+	if err != nil {
+		c.opts.GetLogger().Error("At productUpdateController > prepareDataAndValidate", "error", err.Error())
+		data.formErrorMessage = "System error. Saving details failed"
+		return data, ""
+	}
+
+	data.formSuccessMessage = "Product contents saved successfully"
+
+	return data, ""
+}
+
+func (c *productUpdateController) saveProductMedia(data productUpdateControllerData) (d productUpdateControllerData, errorMessage string) {
+	media := req.Maps(c.opts.GetRequest(), "product_media", []map[string]string{})
+
+	productMedia := lo.Map(media, func(m map[string]string, index int) map[string]string {
+		id := strings.TrimSpace(m["id"])
+		title := strings.TrimSpace(m["title"])
+		url := strings.TrimSpace(m["url"])
+		t := strings.TrimSpace(m["type"])
+
+		if id == "" {
+			errorMessage = "Media ID is required. Please refresh the page and try again."
+		}
+
+		// if t == "" {
+		// 	errorMessage = "Type is required"
+		// }
+
+		// if govalidator.IsURL(url) {
+		// 	errorMessage = "URL is invalid"
+		// }
+
+		entry := map[string]string{}
+		entry["id"] = id
+		entry["title"] = title
+		entry["type"] = t
+		entry["url"] = url
+
+		return entry
+	})
+
+	if errorMessage != "" {
+		return data, errorMessage
+	}
+
+	data.formMedia = productMedia
+
+	if data.action == actionAdd {
+		data.formMedia = append(data.formMedia, map[string]string{
+			"id":    uid.HumanUid(),
+			"title": "",
+			"url":   "",
+		})
+		return data, ""
+	}
+
+	if data.action == actionRemove {
+		removeIndex := utils.Req(c.opts.GetRequest(), "repeatable_remove_index", "")
+
+		if removeIndex == "" {
+			return data, ""
+		}
+
+		removeIndexInt := cast.ToInt(removeIndex)
+
+		id := data.formMedia[removeIndexInt]["id"]
+
+		if id == "" {
+			return data, ""
+		}
+
+		err := c.opts.GetStore().MediaSoftDeleteByID(context.Background(), id)
+
+		if err != nil {
+			c.opts.GetLogger().Error("At productUpdateController > saveProductMedia", "error", err.Error())
+			data.formErrorMessage = "System error. Saving details failed"
+			return data, ""
+		}
+
+		data.formMedia = arr.IndexRemove(data.formMedia, removeIndexInt)
+	}
+
+	if data.action == actionMoveUp {
+		moveUpIndex := utils.Req(c.opts.GetRequest(), "repeatable_move_up_index", "")
+
+		if moveUpIndex == "" {
+			return data, ""
+		}
+
+		moveUpIndexInt := cast.ToInt(moveUpIndex)
+
+		data.formMedia = arr.IndexMoveUp(data.formMedia, moveUpIndexInt)
+	}
+
+	if data.action == actionMoveDown {
+		moveDownIndex := utils.Req(c.opts.GetRequest(), "repeatable_move_down_index", "")
+
+		if moveDownIndex == "" {
+			return data, ""
+		}
+
+		moveDownIndexInt := cast.ToInt(moveDownIndex)
+
+		data.formMedia = arr.IndexMoveDown(data.formMedia, moveDownIndexInt)
+	}
+
+	for i, m := range data.formMedia {
+		id := strings.TrimSpace(m["id"])
+		title := strings.TrimSpace(m["title"])
+		url := strings.TrimSpace(m["url"])
+		if id == "" {
+			continue
+		}
+
+		media, err := c.opts.GetStore().MediaFindByID(context.Background(), id)
+
+		if err != nil {
+			c.opts.GetLogger().Error("At productUpdateController > saveProductMedia", "error", err.Error())
+			data.formErrorMessage = "System error. Saving details failed"
+			return data, ""
+		}
+
+		if media == nil {
+			media := shopstore.NewMedia().
+				SetID(id).
+				SetStatus(shopstore.MEDIA_STATUS_ACTIVE).
+				SetEntityID(data.product.ID()).
+				SetSequence(i + 1).
+				SetType(shopstore.MEDIA_TYPE_IMAGE_JPG).
+				SetTitle(title).
+				SetURL(url)
+
+			err = c.opts.GetStore().MediaCreate(context.Background(), media)
+
+			if err != nil {
+				c.opts.GetLogger().Error("At productUpdateController > saveProductMedia", "error", err.Error())
+				data.formErrorMessage = "System error. Saving details failed"
+				return data, ""
+			}
+		}
+
+		media.SetStatus(shopstore.MEDIA_STATUS_ACTIVE)
+		media.SetTitle(title)
+		media.SetSequence(i + 1)
+		media.SetType(shopstore.MEDIA_TYPE_IMAGE_JPG)
+		media.SetURL(url)
+
+		err = c.opts.GetStore().MediaUpdate(context.Background(), media)
+
+		if err != nil {
+			c.opts.GetLogger().Error("At productUpdateController > saveProductMedia", "error", err.Error())
+			data.formErrorMessage = "System error. Saving details failed"
+			return data, ""
+		}
+	}
+
+	return data, ""
+}
+
+func (c *productUpdateController) saveProductMetadata(data productUpdateControllerData) (d productUpdateControllerData, errorMessage string) {
+	metas := req.Maps(c.opts.GetRequest(), "product_meta", []map[string]string{})
+
+	cfmt.Infoln(metas)
+
+	productMetas := map[string]string{}
+
+	lo.ForEach(metas, func(meta map[string]string, index int) {
+		metaKey := strings.TrimSpace(meta["key"])
+		metaValue := strings.TrimSpace(meta["value"])
+		if metaKey == "" {
+			return
+		}
+		productMetas[metaKey] = metaValue
+	})
+
+	data.formMetas = productMetas
+
+	cfmt.Infoln(data.formMetas)
+
+	if data.formMetas == nil {
+		data.formErrorMessage = "Metadata is required"
+		return data, ""
+	}
+
+	data.product.SetMetas(data.formMetas)
+
+	err := c.opts.GetStore().ProductUpdate(context.Background(), data.product)
+
+	if err != nil {
+		c.opts.GetLogger().Error("At shopstoreadmin > productUpdateController > prepareDataAndValidate", "error", err.Error())
+		data.formErrorMessage = "System error. Saving metas failed"
+		return data, ""
+	}
+
+	data.formSuccessMessage = "Metadata saved successfully"
+
+	return data, ""
+}
+
 func (c *productUpdateController) saveProductSettings(data productUpdateControllerData) (d productUpdateControllerData, errorMessage string) {
 	data.formMemo = utils.Req(c.opts.GetRequest(), "product_memo", "")
 	data.formPrice = utils.Req(c.opts.GetRequest(), "product_price", "")
@@ -636,156 +883,6 @@ func (c *productUpdateController) saveProductSettings(data productUpdateControll
 	return data, ""
 }
 
-// func ReqArrayOfMaps(r *http.Request, key string, defaultValue []map[string]string) []map[string]string {
-// 	all := utils.ReqAll(r)
-
-// 	reqArrayOfMaps := []map[string]string{}
-
-// 	if all == nil {
-// 		return reqArrayOfMaps
-// 	}
-
-// 	mapIndexMap := map[string]map[string]string{}
-
-// 	// Iterate through all the parameters
-// 	for k, v := range all {
-// 		if !strings.HasPrefix(k, key+"[") {
-// 			continue
-// 		}
-// 		if !strings.HasSuffix(k, "]") {
-// 			continue
-// 		}
-// 		if !strings.Contains(k, "][") {
-// 			continue
-// 		}
-// 		mapValue := v[0]
-
-// 		str := strings.TrimSuffix(strings.TrimPrefix(k, key+"["), "]")
-// 		split := strings.Split(str, "][")
-// 		if len(split) != 2 {
-// 			// Handle invalid format
-// 			continue
-// 		}
-
-// 		index, key := split[0], split[1]
-
-// 		if lo.HasKey(mapIndexMap, index) {
-// 			mapIndexMap[index][key] = mapValue
-// 		} else {
-// 			mapIndexMap[index] = map[string]string{
-// 				key: mapValue,
-// 			}
-// 		}
-// 	}
-
-// 	for _, v := range mapIndexMap {
-// 		if v == nil {
-// 			continue
-// 		}
-// 		reqArrayOfMaps = append(reqArrayOfMaps, v)
-// 	}
-
-// 	return reqArrayOfMaps
-// }
-
-func (c *productUpdateController) saveProductMedia(data productUpdateControllerData) (d productUpdateControllerData, errorMessage string) {
-	media := req.Maps(c.opts.GetRequest(), "product_media", []map[string]string{})
-
-	cfmt.Infoln(media)
-
-	productMedia := lo.Map(media, func(m map[string]string, index int) map[string]string {
-		id := strings.TrimSpace(m["id"])
-		title := strings.TrimSpace(m["title"])
-		url := strings.TrimSpace(m["url"])
-		entry := map[string]string{}
-		entry["id"] = id
-		entry["title"] = title
-		entry["url"] = url
-		return entry
-	})
-
-	data.formMedia = productMedia
-
-	cfmt.Successln(data.formMedia)
-
-	if data.action == "add" {
-		data.formMedia = append(data.formMedia, map[string]string{
-			"id":    uid.HumanUid(),
-			"title": "",
-			"url":   "",
-		})
-		return data, ""
-	}
-	return data, ""
-}
-
-func (c *productUpdateController) saveProductMetadata(data productUpdateControllerData) (d productUpdateControllerData, errorMessage string) {
-	metas := req.Maps(c.opts.GetRequest(), "product_meta", []map[string]string{})
-
-	cfmt.Infoln(metas)
-
-	productMetas := map[string]string{}
-
-	lo.ForEach(metas, func(meta map[string]string, index int) {
-		metaKey := strings.TrimSpace(meta["key"])
-		metaValue := strings.TrimSpace(meta["value"])
-		if metaKey == "" {
-			return
-		}
-		productMetas[metaKey] = metaValue
-	})
-
-	data.formMetas = productMetas
-
-	cfmt.Infoln(data.formMetas)
-
-	if data.formMetas == nil {
-		data.formErrorMessage = "Metadata is required"
-		return data, ""
-	}
-
-	data.product.SetMetas(data.formMetas)
-
-	err := c.opts.GetStore().ProductUpdate(context.Background(), data.product)
-
-	if err != nil {
-		c.opts.GetLogger().Error("At shopstoreadmin > productUpdateController > prepareDataAndValidate", "error", err.Error())
-		data.formErrorMessage = "System error. Saving metas failed"
-		return data, ""
-	}
-
-	data.formSuccessMessage = "Metadata saved successfully"
-
-	return data, ""
-}
-
-func (c *productUpdateController) saveProductContent(data productUpdateControllerData) (d productUpdateControllerData, errorMessage string) {
-	data.formDescription = utils.Req(c.opts.GetRequest(), "product_description", "")
-	data.formShortDescription = utils.Req(c.opts.GetRequest(), "product_short_description", "")
-	data.formTitle = utils.Req(c.opts.GetRequest(), "product_title", "")
-
-	if data.formTitle == "" {
-		data.formErrorMessage = "Title is required"
-		return data, ""
-	}
-
-	data.product.SetDescription(data.formDescription)
-	data.product.SetShortDescription(data.formShortDescription)
-	data.product.SetTitle(data.formTitle)
-
-	err := c.opts.GetStore().ProductUpdate(context.Background(), data.product)
-
-	if err != nil {
-		c.opts.GetLogger().Error("At productUpdateController > prepareDataAndValidate", "error", err.Error())
-		data.formErrorMessage = "System error. Saving details failed"
-		return data, ""
-	}
-
-	data.formSuccessMessage = "Product contents saved successfully"
-
-	return data, ""
-}
-
 func (c *productUpdateController) prepareDataAndValidate() (data productUpdateControllerData, errorMessage string) {
 	data.request = c.opts.GetRequest()
 	data.action = utils.Req(c.opts.GetRequest(), "action", "")
@@ -830,18 +927,21 @@ func (c *productUpdateController) prepareDataAndValidate() (data productUpdateCo
 
 	data.media = media
 
-	data.formMemo = data.product.Memo()
-	data.formStatus = data.product.Status()
-	data.formTitle = data.product.Title()
 	data.formDescription = data.product.Description()
+	data.formMemo = data.product.Memo()
+	data.formMetas = metas
 	data.formPrice = data.product.Price()
 	data.formQuantity = data.product.Quantity()
-	data.formMetas = metas
+	data.formShortDescription = data.product.ShortDescription()
+	data.formStatus = data.product.Status()
+	data.formTitle = data.product.Title()
+
 	data.formMedia = lo.Map(data.media, func(media shopstore.MediaInterface, index int) map[string]string {
 		return map[string]string{
-			"id":   media.ID(),
-			"name": media.Title(),
-			"url":  media.URL(),
+			"id":    media.ID(),
+			"title": media.Title(),
+			"url":   media.URL(),
+			"type":  media.Type(),
 		}
 	})
 

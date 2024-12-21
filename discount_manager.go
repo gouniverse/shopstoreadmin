@@ -303,15 +303,35 @@ func (controller *discountManagerController) tableDiscounts(data discountManager
 			SortableKey: "status",
 		},
 		{
+			Label:       "Type",
+			Sortable:    true,
+			SortableKey: "type",
+		},
+		{
+			Label:       "Amount",
+			Sortable:    true,
+			SortableKey: "amount",
+		},
+		{
+			Label:       "Period Valid",
+			Sortable:    true,
+			SortableKey: "period_valid",
+		},
+		{
+			Label:       "Discount Code",
+			Sortable:    true,
+			SortableKey: "discount_code",
+		},
+		{
 			Label:       "Created",
 			Sortable:    true,
 			SortableKey: "created_at",
 		},
-		{
-			Label:       "Modified",
-			Sortable:    true,
-			SortableKey: "updated_at",
-		},
+		// {
+		// 	Label:       "Modified",
+		// 	Sortable:    true,
+		// 	SortableKey: "updated_at",
+		// },
 		{
 			Label:    "Actions",
 			Sortable: false,
@@ -370,6 +390,13 @@ func (controller *discountManagerController) tableDiscounts(data discountManager
 					HxTarget("body").
 					HxSwap("beforeend")
 
+				discountType := discount.Type()
+				discountAmount := cast.ToString(discount.Amount())
+				if discount.Type() == shopstore.DISCOUNT_TYPE_PERCENT {
+					discountAmount = discountAmount + "%"
+				}
+				discountValid := discount.StartsAtCarbon().Format("d M Y") + " - " + discount.EndsAtCarbon().Format("d M Y")
+
 				return hb.TR().Children([]hb.TagInterface{
 					hb.TD().
 						Child(hb.Div().Child(discountLink)).
@@ -380,13 +407,22 @@ func (controller *discountManagerController) tableDiscounts(data discountManager
 					hb.TD().
 						Child(status),
 					hb.TD().
-						Child(hb.Div().
-							Style("font-size: 13px;white-space: nowrap;").
-							HTML(discount.CreatedAtCarbon().Format("d M Y"))),
+						Text(discountType),
+					hb.TD().
+						Text(discountAmount),
+					hb.TD().
+						Style(`font-size: 13px;`).
+						Text(discountValid),
+					hb.TD().
+						Text(discount.Code()),
 					hb.TD().
 						Child(hb.Div().
 							Style("font-size: 13px;white-space: nowrap;").
-							HTML(discount.UpdatedAtCarbon().Format("d M Y"))),
+							HTML(discount.CreatedAtCarbon().Format("d M Y"))),
+					// hb.TD().
+					// 	Child(hb.Div().
+					// 		Style("font-size: 13px;white-space: nowrap;").
+					// 		HTML(discount.UpdatedAtCarbon().Format("d M Y"))),
 					hb.TD().
 						Child(buttonEdit).
 						Child(buttonDelete),
