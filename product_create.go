@@ -85,9 +85,11 @@ func (controller *productCreateController) modal(data productCreateControllerDat
 	jsCloseFn := `function closeModal` + modalID + `() {document.getElementById('ModalproductCreate').remove();[...document.getElementsByClassName('` + modalBackdropClass + `')].forEach(el => el.remove());}`
 
 	buttonSend := hb.Button().
+		Class("btn btn-primary float-end").
 		Child(hb.I().Class("bi bi-check me-2")).
 		HTML("Create & Edit").
-		Class("btn btn-primary float-end").
+		Child(hb.Div().ID("ButtonSaveIndicator").Class("spinner-border spinner-border-sm ms-2 htmx-indicator")).
+		HxIndicator("#ButtonSaveIndicator").
 		HxInclude("#" + modalID).
 		HxPost(submitUrl).
 		HxSelectOob("#ModalproductCreate").

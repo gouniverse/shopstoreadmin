@@ -194,3 +194,10 @@ func query(queryData map[string]string) string {
 func httpBuildQuery(queryData urlpkg.Values) string {
 	return queryData.Encode()
 }
+
+func isRepeaterAction(action string) bool {
+	return action == actionAdd ||
+		action == actionRemove ||
+		action == actionMoveUp ||
+		action == actionMoveDown
+}

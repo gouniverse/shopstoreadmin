@@ -9,6 +9,7 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/gouniverse/base/arr"
+	"github.com/gouniverse/base/database"
 	"github.com/gouniverse/base/req"
 	"github.com/gouniverse/bs"
 	"github.com/gouniverse/cdn"
@@ -17,7 +18,6 @@ import (
 	"github.com/gouniverse/shopstore"
 	"github.com/gouniverse/uid"
 	"github.com/gouniverse/utils"
-	"github.com/mingrammer/cfmt"
 	"github.com/samber/lo"
 	"github.com/spf13/cast"
 )
@@ -409,141 +409,201 @@ func (c *productUpdateController) formMediaFields(data productUpdateControllerDa
 }
 
 func (c *productUpdateController) formMetadataFields(data productUpdateControllerData) []form.FieldInterface {
-	metas := data.formMetas
+	repeaterAddURL := url(c.opts.GetRequest(), pathProductUpdate, map[string]string{
+		"product_id": data.productID,
+		"view":       viewMetadata,
+		"action":     "add",
+	})
 
-	fields := []form.FieldInterface{}
+	repeaterMoveUpURL := url(c.opts.GetRequest(), pathProductUpdate, map[string]string{
+		"product_id": data.productID,
+		"view":       viewMetadata,
+		"action":     "move_up",
+	})
 
-	index := 0
-	keys := lo.Keys(metas)
-	slices.Sort(keys)
-	for _, key := range keys {
-		value := metas[key]
-		background := lo.Ternary(index%2 == 0, "bg-light", "bg-white")
-		fieldsMeta := []form.FieldInterface{
-			form.NewField(form.FieldOptions{
-				Type:  form.FORM_FIELD_TYPE_RAW,
-				Help:  `Opening row`,
-				Value: `<div id="Row` + cast.ToString(index) + `" class="row ` + background + ` py-2">`,
-			}),
-			form.NewField(form.FieldOptions{
-				Type:  form.FORM_FIELD_TYPE_RAW,
-				Help:  `Opening column 1`,
-				Value: `<div class="col-3">`,
-			}),
-			form.NewField(form.FieldOptions{
-				Label: `Key`,
-				Name:  `product_meta[` + cast.ToString(index) + `][key]`,
-				Type:  form.FORM_FIELD_TYPE_STRING,
-				Value: key,
-				// Help:  "The metadata value.",
-			}),
-			form.NewField(form.FieldOptions{
-				Type:  form.FORM_FIELD_TYPE_RAW,
-				Help:  `Closing column 1`,
-				Value: `</div>`,
-			}),
-			form.NewField(form.FieldOptions{
-				Type:  form.FORM_FIELD_TYPE_RAW,
-				Help:  `Opening column 2`,
-				Value: `<div class="col-8">`,
-			}),
-			form.NewField(form.FieldOptions{
-				Label: `Value`,
-				Name:  `product_meta[` + cast.ToString(index) + `][value]`,
-				Type:  form.FORM_FIELD_TYPE_TEXTAREA,
-				Value: value,
-				// Help:  "The metadata value.",
-			}),
-			form.NewField(form.FieldOptions{
-				Type:  form.FORM_FIELD_TYPE_RAW,
-				Help:  `Closing column 2`,
-				Value: `</div>`,
-			}),
-			form.NewField(form.FieldOptions{
-				Type:  form.FORM_FIELD_TYPE_RAW,
-				Help:  `Opening column 3`,
-				Value: `<div class="col-1">`,
-			}),
-			form.NewField(form.FieldOptions{
-				Type:  form.FORM_FIELD_TYPE_RAW,
-				Value: `<button onclick="document.getElementById('Row` + cast.ToString(index) + `').innerHTML='';" type="button" class="btn btn-sm btn-danger">x</button>`,
-				Help:  "Delete...",
-			}),
-			form.NewField(form.FieldOptions{
-				Type:  form.FORM_FIELD_TYPE_RAW,
-				Help:  `Closing column 3`,
-				Value: `</div>`,
-			}),
-			form.NewField(form.FieldOptions{
-				Type:  form.FORM_FIELD_TYPE_RAW,
-				Help:  `Closing the row.`,
-				Value: `</div>`,
-			}),
-		}
+	repeaterMoveDownURL := url(c.opts.GetRequest(), pathProductUpdate, map[string]string{
+		"product_id": data.productID,
+		"view":       viewMetadata,
+		"action":     "move_down",
+	})
 
-		fields = append(fields, fieldsMeta...)
+	repeaterRemoveURL := url(c.opts.GetRequest(), pathProductUpdate, map[string]string{
+		"product_id": data.productID,
+		"view":       viewMetadata,
+		"action":     "remove",
+	})
 
-		index++
+	fieldKey := form.NewField(form.FieldOptions{
+		ID:       "product_meta_key",
+		Label:    "Meta Key",
+		Name:     "meta_key",
+		Type:     form.FORM_FIELD_TYPE_STRING,
+		Help:     `The meta data key.`,
+		Required: true,
+	})
+
+	fieldValue := form.NewField(form.FieldOptions{
+		ID:    "product_meta_value",
+		Label: "Meta Value",
+		Name:  "meta_value",
+		Type:  form.FORM_FIELD_TYPE_TEXTAREA,
+		Help:  `The meta data value.`,
+	})
+
+	// metas := data.formMetas
+
+	// fields := []form.FieldInterface{}
+
+	// index := 0
+	// keys := lo.Keys(metas)
+	// slices.Sort(keys)
+	// for _, key := range keys {
+	// 	value := metas[key]
+	// 	background := lo.Ternary(index%2 == 0, "bg-light", "bg-white")
+	// 	fieldsMeta := []form.FieldInterface{
+	// 		form.NewField(form.FieldOptions{
+	// 			Type:  form.FORM_FIELD_TYPE_RAW,
+	// 			Help:  `Opening row`,
+	// 			Value: `<div id="Row` + cast.ToString(index) + `" class="row ` + background + ` py-2">`,
+	// 		}),
+	// 		form.NewField(form.FieldOptions{
+	// 			Type:  form.FORM_FIELD_TYPE_RAW,
+	// 			Help:  `Opening column 1`,
+	// 			Value: `<div class="col-3">`,
+	// 		}),
+	// 		form.NewField(form.FieldOptions{
+	// 			Label: `Key`,
+	// 			Name:  `product_meta[` + cast.ToString(index) + `][key]`,
+	// 			Type:  form.FORM_FIELD_TYPE_STRING,
+	// 			Value: key,
+	// 			// Help:  "The metadata value.",
+	// 		}),
+	// 		form.NewField(form.FieldOptions{
+	// 			Type:  form.FORM_FIELD_TYPE_RAW,
+	// 			Help:  `Closing column 1`,
+	// 			Value: `</div>`,
+	// 		}),
+	// 		form.NewField(form.FieldOptions{
+	// 			Type:  form.FORM_FIELD_TYPE_RAW,
+	// 			Help:  `Opening column 2`,
+	// 			Value: `<div class="col-8">`,
+	// 		}),
+	// 		form.NewField(form.FieldOptions{
+	// 			Label: `Value`,
+	// 			Name:  `product_meta[` + cast.ToString(index) + `][value]`,
+	// 			Type:  form.FORM_FIELD_TYPE_TEXTAREA,
+	// 			Value: value,
+	// 			// Help:  "The metadata value.",
+	// 		}),
+	// 		form.NewField(form.FieldOptions{
+	// 			Type:  form.FORM_FIELD_TYPE_RAW,
+	// 			Help:  `Closing column 2`,
+	// 			Value: `</div>`,
+	// 		}),
+	// 		form.NewField(form.FieldOptions{
+	// 			Type:  form.FORM_FIELD_TYPE_RAW,
+	// 			Help:  `Opening column 3`,
+	// 			Value: `<div class="col-1">`,
+	// 		}),
+	// 		form.NewField(form.FieldOptions{
+	// 			Type:  form.FORM_FIELD_TYPE_RAW,
+	// 			Value: `<button onclick="document.getElementById('Row` + cast.ToString(index) + `').innerHTML='';" type="button" class="btn btn-sm btn-danger">x</button>`,
+	// 			Help:  "Delete...",
+	// 		}),
+	// 		form.NewField(form.FieldOptions{
+	// 			Type:  form.FORM_FIELD_TYPE_RAW,
+	// 			Help:  `Closing column 3`,
+	// 			Value: `</div>`,
+	// 		}),
+	// 		form.NewField(form.FieldOptions{
+	// 			Type:  form.FORM_FIELD_TYPE_RAW,
+	// 			Help:  `Closing the row.`,
+	// 			Value: `</div>`,
+	// 		}),
+	// 	}
+
+	// 	fields = append(fields, fieldsMeta...)
+
+	// 	index++
+	// }
+
+	// fieldsNewMeta := []form.FieldInterface{
+	// 	form.NewField(form.FieldOptions{
+	// 		Type:  form.FORM_FIELD_TYPE_RAW,
+	// 		Value: `<hr />`,
+	// 	}),
+	// 	form.NewField(form.FieldOptions{
+	// 		Type:  form.FORM_FIELD_TYPE_RAW,
+	// 		Value: `<div class="row bg-info py-2">`,
+	// 	}),
+	// 	form.NewField(form.FieldOptions{
+	// 		Type:  form.FORM_FIELD_TYPE_RAW,
+	// 		Value: `<h3>New Meta</h3>`,
+	// 	}),
+	// 	form.NewField(form.FieldOptions{
+	// 		Type:  form.FORM_FIELD_TYPE_RAW,
+	// 		Value: `<div class="col-6">`,
+	// 	}),
+
+	// 	form.NewField(form.FieldOptions{
+	// 		Label: `Key`,
+	// 		Name:  `product_meta[` + cast.ToString(index) + `][key]`,
+	// 		Type:  form.FORM_FIELD_TYPE_STRING,
+	// 		Value: "",
+	// 		// Help:  "The metadata value.",
+	// 	}),
+
+	// 	form.NewField(form.FieldOptions{
+	// 		Type:  form.FORM_FIELD_TYPE_RAW,
+	// 		Value: `</div>`,
+	// 	}),
+
+	// 	form.NewField(form.FieldOptions{
+	// 		Type:  form.FORM_FIELD_TYPE_RAW,
+	// 		Value: `<div class="col-6">`,
+	// 	}),
+
+	// 	form.NewField(form.FieldOptions{
+	// 		Label: `Value`,
+	// 		Name:  `product_meta[` + cast.ToString(index) + `][value]`,
+	// 		Type:  form.FORM_FIELD_TYPE_STRING,
+	// 		Value: "",
+	// 		// Help:  "The metadata value.",
+	// 	}),
+
+	// 	form.NewField(form.FieldOptions{
+	// 		Type:  form.FORM_FIELD_TYPE_RAW,
+	// 		Value: `</div>`,
+	// 	}),
+
+	// 	form.NewField(form.FieldOptions{
+	// 		Type:  form.FORM_FIELD_TYPE_RAW,
+	// 		Value: `</div>`,
+	// 	}),
+	// }
+
+	// fields = append(fields, fieldsNewMeta...)
+
+	// return fields
+
+	repeater := form.NewRepeater(form.RepeaterOptions{
+		Label:               "Metas",
+		Help:                `The metadata of the product.`,
+		Name:                "product_metas",
+		Values:              data.formMetas,
+		RepeaterAddUrl:      repeaterAddURL,
+		RepeaterMoveUpUrl:   repeaterMoveUpURL,
+		RepeaterMoveDownUrl: repeaterMoveDownURL,
+		RepeaterRemoveUrl:   repeaterRemoveURL,
+		Fields: []form.FieldInterface{
+			fieldKey,
+			fieldValue,
+		},
+	})
+
+	return []form.FieldInterface{
+		repeater,
 	}
-
-	fieldsNewMeta := []form.FieldInterface{
-		form.NewField(form.FieldOptions{
-			Type:  form.FORM_FIELD_TYPE_RAW,
-			Value: `<hr />`,
-		}),
-		form.NewField(form.FieldOptions{
-			Type:  form.FORM_FIELD_TYPE_RAW,
-			Value: `<div class="row bg-info py-2">`,
-		}),
-		form.NewField(form.FieldOptions{
-			Type:  form.FORM_FIELD_TYPE_RAW,
-			Value: `<h3>New Meta</h3>`,
-		}),
-		form.NewField(form.FieldOptions{
-			Type:  form.FORM_FIELD_TYPE_RAW,
-			Value: `<div class="col-6">`,
-		}),
-
-		form.NewField(form.FieldOptions{
-			Label: `Key`,
-			Name:  `product_meta[` + cast.ToString(index) + `][key]`,
-			Type:  form.FORM_FIELD_TYPE_STRING,
-			Value: "",
-			// Help:  "The metadata value.",
-		}),
-
-		form.NewField(form.FieldOptions{
-			Type:  form.FORM_FIELD_TYPE_RAW,
-			Value: `</div>`,
-		}),
-
-		form.NewField(form.FieldOptions{
-			Type:  form.FORM_FIELD_TYPE_RAW,
-			Value: `<div class="col-6">`,
-		}),
-
-		form.NewField(form.FieldOptions{
-			Label: `Value`,
-			Name:  `product_meta[` + cast.ToString(index) + `][value]`,
-			Type:  form.FORM_FIELD_TYPE_STRING,
-			Value: "",
-			// Help:  "The metadata value.",
-		}),
-
-		form.NewField(form.FieldOptions{
-			Type:  form.FORM_FIELD_TYPE_RAW,
-			Value: `</div>`,
-		}),
-
-		form.NewField(form.FieldOptions{
-			Type:  form.FORM_FIELD_TYPE_RAW,
-			Value: `</div>`,
-		}),
-	}
-
-	fields = append(fields, fieldsNewMeta...)
-
-	return fields
 }
 
 func (c *productUpdateController) formSettingsFields(data productUpdateControllerData) []form.FieldInterface {
@@ -632,56 +692,54 @@ func (c *productUpdateController) saveProductContent(data productUpdateControlle
 	return data, ""
 }
 
-func (c *productUpdateController) saveProductMedia(data productUpdateControllerData) (d productUpdateControllerData, errorMessage string) {
-	media := req.Maps(c.opts.GetRequest(), "product_media", []map[string]string{})
+func (c *productUpdateController) processProductMedia(media []map[string]string, data productUpdateControllerData) (_ []map[string]string, errorMessage string) {
+	// productMedia := lo.Map(media, func(m map[string]string, index int) map[string]string {
+	// 	id := strings.TrimSpace(m["id"])
+	// 	title := strings.TrimSpace(m["title"])
+	// 	url := strings.TrimSpace(m["url"])
+	// 	t := strings.TrimSpace(m["type"])
 
-	productMedia := lo.Map(media, func(m map[string]string, index int) map[string]string {
-		id := strings.TrimSpace(m["id"])
-		title := strings.TrimSpace(m["title"])
-		url := strings.TrimSpace(m["url"])
-		t := strings.TrimSpace(m["type"])
+	// 	if id == "" {
+	// 		errorMessage = "Media ID is required. Please refresh the page and try again."
+	// 	}
 
-		if id == "" {
-			errorMessage = "Media ID is required. Please refresh the page and try again."
-		}
+	// 	// if t == "" {
+	// 	// 	errorMessage = "Type is required"
+	// 	// }
 
-		// if t == "" {
-		// 	errorMessage = "Type is required"
-		// }
+	// 	// if govalidator.IsURL(url) {
+	// 	// 	errorMessage = "URL is invalid"
+	// 	// }
 
-		// if govalidator.IsURL(url) {
-		// 	errorMessage = "URL is invalid"
-		// }
+	// 	entry := map[string]string{}
+	// 	entry["id"] = id
+	// 	entry["title"] = title
+	// 	entry["type"] = t
+	// 	entry["url"] = url
 
-		entry := map[string]string{}
-		entry["id"] = id
-		entry["title"] = title
-		entry["type"] = t
-		entry["url"] = url
+	// 	return entry
+	// })
 
-		return entry
-	})
+	// if errorMessage != "" {
+	// 	return data, errorMessage
+	// }
 
-	if errorMessage != "" {
-		return data, errorMessage
-	}
-
-	data.formMedia = productMedia
+	// data.formMedia = productMedia
 
 	if data.action == actionAdd {
-		data.formMedia = append(data.formMedia, map[string]string{
+		media = append(media, map[string]string{
 			"id":    uid.HumanUid(),
 			"title": "",
 			"url":   "",
 		})
-		return data, ""
+		return media, ""
 	}
 
 	if data.action == actionRemove {
 		removeIndex := utils.Req(c.opts.GetRequest(), "repeatable_remove_index", "")
 
 		if removeIndex == "" {
-			return data, ""
+			return media, ""
 		}
 
 		removeIndexInt := cast.ToInt(removeIndex)
@@ -689,44 +747,89 @@ func (c *productUpdateController) saveProductMedia(data productUpdateControllerD
 		id := data.formMedia[removeIndexInt]["id"]
 
 		if id == "" {
-			return data, ""
+			return media, ""
 		}
 
-		err := c.opts.GetStore().MediaSoftDeleteByID(context.Background(), id)
+		// err := c.opts.GetStore().MediaSoftDeleteByID(context.Background(), id)
 
-		if err != nil {
-			c.opts.GetLogger().Error("At productUpdateController > saveProductMedia", "error", err.Error())
-			data.formErrorMessage = "System error. Saving details failed"
-			return data, ""
-		}
+		// if err != nil {
+		// 	c.opts.GetLogger().Error("At productUpdateController > saveProductMedia", "error", err.Error())
+		// 	return media, "System error. Saving details failed"
+		// }
 
-		data.formMedia = arr.IndexRemove(data.formMedia, removeIndexInt)
+		return arr.IndexRemove(media, removeIndexInt), ""
 	}
 
 	if data.action == actionMoveUp {
 		moveUpIndex := utils.Req(c.opts.GetRequest(), "repeatable_move_up_index", "")
 
 		if moveUpIndex == "" {
-			return data, ""
+			return media, ""
 		}
 
 		moveUpIndexInt := cast.ToInt(moveUpIndex)
 
-		data.formMedia = arr.IndexMoveUp(data.formMedia, moveUpIndexInt)
+		return arr.IndexMoveUp(data.formMedia, moveUpIndexInt), ""
 	}
 
 	if data.action == actionMoveDown {
 		moveDownIndex := utils.Req(c.opts.GetRequest(), "repeatable_move_down_index", "")
 
 		if moveDownIndex == "" {
-			return data, ""
+			return media, ""
 		}
 
 		moveDownIndexInt := cast.ToInt(moveDownIndex)
 
-		data.formMedia = arr.IndexMoveDown(data.formMedia, moveDownIndexInt)
+		return arr.IndexMoveDown(data.formMedia, moveDownIndexInt), ""
 	}
 
+	return media, ""
+}
+
+func (c *productUpdateController) saveProductMedia(data productUpdateControllerData) (d productUpdateControllerData, errorMessage string) {
+	data.formMedia = req.Maps(c.opts.GetRequest(), "product_media", []map[string]string{})
+
+	// 1. For repeater actions, process the repeater but do not save
+	if isRepeaterAction(data.action) {
+		data.formMedia, errorMessage = c.processProductMedia(data.formMedia, data)
+		return data, errorMessage
+	}
+
+	// 2. Find the deleted IDs
+	existingMedia, err := c.opts.GetStore().MediaList(context.Background(), shopstore.NewMediaQuery().
+		SetStatus(shopstore.MEDIA_STATUS_ACTIVE).
+		SetEntityID(data.product.ID()))
+
+	if err != nil {
+		c.opts.GetLogger().Error("At productUpdateController > saveProductMedia", "error", err.Error())
+		data.formErrorMessage = "System error. Saving details failed"
+		return data, ""
+	}
+
+	oldMediaIDs := lo.Map(existingMedia, func(m shopstore.MediaInterface, index int) string {
+		return m.ID()
+	})
+
+	newMediaIDs := lo.Map(data.formMedia, func(m map[string]string, index int) string {
+		return strings.TrimSpace(m["id"])
+	})
+
+	deletedMediaIDs := lo.Filter(oldMediaIDs, func(id string, index int) bool {
+		return !slices.Contains(newMediaIDs, id)
+	})
+
+	tx, err := c.opts.GetStore().DB().BeginTx(c.opts.GetRequest().Context(), nil)
+
+	if err != nil {
+		c.opts.GetLogger().Error("At productUpdateController > saveProductMedia", "error", err.Error())
+		data.formErrorMessage = "System error. Saving details failed"
+		return data, ""
+	}
+
+	ctx := database.NewQueryableContext(c.opts.GetRequest().Context(), c.opts.GetStore().DB())
+
+	// 3. Upsert the media
 	for i, m := range data.formMedia {
 		id := strings.TrimSpace(m["id"])
 		title := strings.TrimSpace(m["title"])
@@ -735,7 +838,7 @@ func (c *productUpdateController) saveProductMedia(data productUpdateControllerD
 			continue
 		}
 
-		media, err := c.opts.GetStore().MediaFindByID(context.Background(), id)
+		media, err := c.opts.GetStore().MediaFindByID(ctx, id)
 
 		if err != nil {
 			c.opts.GetLogger().Error("At productUpdateController > saveProductMedia", "error", err.Error())
@@ -753,7 +856,7 @@ func (c *productUpdateController) saveProductMedia(data productUpdateControllerD
 				SetTitle(title).
 				SetURL(url)
 
-			err = c.opts.GetStore().MediaCreate(context.Background(), media)
+			err = c.opts.GetStore().MediaCreate(ctx, media)
 
 			if err != nil {
 				c.opts.GetLogger().Error("At productUpdateController > saveProductMedia", "error", err.Error())
@@ -768,7 +871,7 @@ func (c *productUpdateController) saveProductMedia(data productUpdateControllerD
 		media.SetType(shopstore.MEDIA_TYPE_IMAGE_JPG)
 		media.SetURL(url)
 
-		err = c.opts.GetStore().MediaUpdate(context.Background(), media)
+		err = c.opts.GetStore().MediaUpdate(ctx, media)
 
 		if err != nil {
 			c.opts.GetLogger().Error("At productUpdateController > saveProductMedia", "error", err.Error())
@@ -777,35 +880,106 @@ func (c *productUpdateController) saveProductMedia(data productUpdateControllerD
 		}
 	}
 
-	return data, ""
-}
+	// 4. Delete the deleted media
+	for _, id := range deletedMediaIDs {
+		err := c.opts.GetStore().MediaSoftDeleteByID(ctx, id)
 
-func (c *productUpdateController) saveProductMetadata(data productUpdateControllerData) (d productUpdateControllerData, errorMessage string) {
-	metas := req.Maps(c.opts.GetRequest(), "product_meta", []map[string]string{})
-
-	cfmt.Infoln(metas)
-
-	productMetas := map[string]string{}
-
-	lo.ForEach(metas, func(meta map[string]string, index int) {
-		metaKey := strings.TrimSpace(meta["key"])
-		metaValue := strings.TrimSpace(meta["value"])
-		if metaKey == "" {
-			return
+		if err != nil {
+			c.opts.GetLogger().Error("At productUpdateController > saveProductMedia", "error", err.Error())
+			data.formErrorMessage = "System error. Saving details failed"
+			return data, ""
 		}
-		productMetas[metaKey] = metaValue
-	})
+	}
 
-	data.formMetas = productMetas
+	// 5. Commit the transaction
+	err = tx.Commit()
 
-	cfmt.Infoln(data.formMetas)
+	if err != nil {
+		c.opts.GetLogger().Error("At productUpdateController > saveProductMedia", "error", err.Error())
+		data.formErrorMessage = "System error. Saving details failed"
 
-	if data.formMetas == nil {
-		data.formErrorMessage = "Metadata is required"
+		err = tx.Rollback()
+
+		if err != nil {
+			c.opts.GetLogger().Error("At productUpdateController > saveProductMedia", "error", err.Error())
+		}
+
 		return data, ""
 	}
 
-	data.product.SetMetas(data.formMetas)
+	return data, ""
+}
+
+func (c *productUpdateController) processProductMetadata(metas []map[string]string, data productUpdateControllerData) (_ []map[string]string, errorMessage string) {
+	if data.action == actionAdd {
+
+		metas = append(metas, map[string]string{
+			"meta_key":   "",
+			"meta_value": "",
+		})
+
+		return metas, ""
+	}
+
+	if data.action == actionRemove {
+		removeIndex := utils.Req(c.opts.GetRequest(), "repeatable_remove_index", "")
+
+		if removeIndex == "" {
+			return metas, ""
+		}
+
+		removeIndexInt := cast.ToInt(removeIndex)
+
+		return arr.IndexRemove(data.formMetas, removeIndexInt), ""
+	}
+
+	if data.action == actionMoveUp {
+		moveUpIndex := utils.Req(c.opts.GetRequest(), "repeatable_move_up_index", "")
+
+		if moveUpIndex == "" {
+			return metas, ""
+		}
+
+		moveUpIndexInt := cast.ToInt(moveUpIndex)
+
+		return arr.IndexMoveUp(data.formMetas, moveUpIndexInt), ""
+	}
+
+	if data.action == actionMoveDown {
+		moveDownIndex := utils.Req(c.opts.GetRequest(), "repeatable_move_down_index", "")
+
+		if moveDownIndex == "" {
+			return metas, ""
+		}
+
+		moveDownIndexInt := cast.ToInt(moveDownIndex)
+
+		return arr.IndexMoveDown(data.formMetas, moveDownIndexInt), ""
+	}
+	return metas, ""
+}
+
+func (c *productUpdateController) saveProductMetadata(data productUpdateControllerData) (d productUpdateControllerData, errorMessage string) {
+	data.formMetas = req.Maps(c.opts.GetRequest(), "product_metas", []map[string]string{})
+
+	if isRepeaterAction(data.action) {
+		data.formMetas, errorMessage = c.processProductMetadata(data.formMetas, data)
+		return data, errorMessage
+	}
+
+	metasUpdated := map[string]string{}
+
+	lo.ForEach(data.formMetas, func(meta map[string]string, index int) {
+		metaKey := strings.TrimSpace(meta["meta_key"])
+		metaValue := strings.TrimSpace(meta["meta_value"])
+		if metaKey == "" {
+			return
+		}
+
+		metasUpdated[metaKey] = metaValue
+	})
+
+	data.product.SetMetas(metasUpdated)
 
 	err := c.opts.GetStore().ProductUpdate(context.Background(), data.product)
 
@@ -926,10 +1100,10 @@ func (c *productUpdateController) prepareDataAndValidate() (data productUpdateCo
 	}
 
 	data.media = media
+	// data.formMetas = metas
 
 	data.formDescription = data.product.Description()
 	data.formMemo = data.product.Memo()
-	data.formMetas = metas
 	data.formPrice = data.product.Price()
 	data.formQuantity = data.product.Quantity()
 	data.formShortDescription = data.product.ShortDescription()
@@ -942,6 +1116,14 @@ func (c *productUpdateController) prepareDataAndValidate() (data productUpdateCo
 			"title": media.Title(),
 			"url":   media.URL(),
 			"type":  media.Type(),
+		}
+	})
+
+	data.formMetas = lo.Map(lo.Keys(metas), func(key string, index int) map[string]string {
+		value := metas[key]
+		return map[string]string{
+			"meta_key":   key,
+			"meta_value": value,
 		}
 	})
 
@@ -991,7 +1173,7 @@ type productUpdateControllerData struct {
 	formDescription      string
 	formMemo             string
 	formMedia            []map[string]string
-	formMetas            map[string]string
+	formMetas            []map[string]string
 	formQuantity         string
 	formPrice            string
 	formShortDescription string
